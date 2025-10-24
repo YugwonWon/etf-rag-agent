@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package etfquery;
+
+// ETF Query Service
+service ETFQueryService {
+  // Ask a question about ETFs
+  rpc AskQuestion (QuestionRequest) returns (AnswerResponse);
+  
+  // Get ETF summary
+  rpc GetETFSummary (ETFSummaryRequest) returns (ETFSummaryResponse);
+  
+  // Trigger manual data collection
+  rpc TriggerCollection (CollectionRequest) returns (CollectionResponse);
+  
+  // Get service health status
+  rpc HealthCheck (HealthRequest) returns (HealthResponse);
+}
+
+// Question request
+message QuestionRequest {
+  string question = 1;
+  string model_type = 2;  // "openai" or "local"
+  optional string etf_type = 3;  // "domestic", "foreign", or empty for all
+  optional int32 top_k = 4;  // Number of results to retrieve
+  optional float temperature = 5;  // LLM temperature (0-2)
+}
+
+// Answer response
+message AnswerResponse {
+  string answer = 1;
+  repeated Source sources = 2;
+  int32 num_sources = 3;
+  string model_type = 4;
+}
+
+// Source document
+message Source {
+  int32 rank = 1;
+  string etf_name = 2;
+  string etf_code = 3;
+  string source = 4;
+  string date = 5;
+  float relevance = 6;
+  string preview = 7;
+}
+
+// ETF summary request
+message ETFSummaryRequest {
+  string etf_code = 1;
+}
+
+// ETF summary response
+message ETFSummaryResponse {
+  string etf_code = 1;
+  string etf_name = 2;
+  string etf_type = 3;
+  string category = 4;
+  string source = 5;
+  string last_updated = 6;
+  string content_preview = 7;
+  int32 num_versions = 8;
+}
+
+// Collection request
+message CollectionRequest {
+  optional bool domestic = 1;
+  optional bool foreign = 2;
+  optional bool dart = 3;
+  optional int32 domestic_max = 4;
+}
+
+// Collection response
+message CollectionResponse {
+  bool success = 1;
+  string message = 2;
+  int32 domestic_count = 3;
+  int32 foreign_count = 4;
+  int32 dart_count = 5;
+  int32 total_count = 6;
+}
+
+// Health check request
+message HealthRequest {
+}
+
+// Health check response
+message HealthResponse {
+  bool healthy = 1;
+  string status = 2;
+  string version = 3;
+  int32 total_documents = 4;
+}
