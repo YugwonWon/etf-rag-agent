@@ -1,13 +1,89 @@
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
-*.py[codz]
+*.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Data
+data/raw/*
+!data/raw/.gitkeep
+*.csv
+*.xlsx
+*.pdf
+
+# Vector Database
+weaviate_data/
+
+# Model files
+*.gguf
+*.bin
+*.safetensors
+models/
+
+# gRPC generated files
+protos/__generated__/*.py
+!protos/__generated__/__init__.py
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Chrome driver
+chromedriver
+geckodriver
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+temp/
 build/
 develop-eggs/
 dist/
