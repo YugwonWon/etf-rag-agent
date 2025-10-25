@@ -69,11 +69,38 @@ class Settings(BaseSettings):
     similarity_threshold: float = Field(default=0.7, env="SIMILARITY_THRESHOLD")
     enable_cache: bool = Field(default=False, env="ENABLE_CACHE")
     cache_ttl_seconds: int = Field(default=3600, env="CACHE_TTL_SECONDS")
+    rag_top_k: int = Field(default=5, env="RAG_TOP_K")
+    rag_temperature: float = Field(default=0.7, env="RAG_TEMPERATURE")
+    rag_max_tokens: int = Field(default=2000, env="RAG_MAX_TOKENS")
+    
+    # Embedding Configuration
+    embedding_model: str = Field(default="text-embedding-3-small", env="EMBEDDING_MODEL")
+    embedding_dim: int = Field(default=1536, env="EMBEDDING_DIM")
     
     # Version Control
     enable_duplicate_check: bool = Field(default=True, env="ENABLE_DUPLICATE_CHECK")
     keep_history: bool = Field(default=True, env="KEEP_HISTORY")
     max_versions_per_etf: int = Field(default=10, env="MAX_VERSIONS_PER_ETF")
+    
+    # Server Configuration
+    server_host: str = Field(default="0.0.0.0", env="SERVER_HOST")
+    server_port: int = Field(default=8000, env="SERVER_PORT")
+    debug: bool = Field(default=False, env="DEBUG")
+    reload: bool = Field(default=False, env="RELOAD")
+    cors_origins: str = Field(default="*", env="CORS_ORIGINS")
+    
+    # Application Settings
+    environment: str = Field(default="development", env="ENVIRONMENT")
+    project_name: str = Field(default="ETF RAG Agent", env="PROJECT_NAME")
+    timezone: str = Field(default="Asia/Seoul", env="TIMEZONE")
+    profiling: bool = Field(default=False, env="PROFILING")
+    
+    # Gradio Settings
+    gradio_port: int = Field(default=7860, env="GRADIO_PORT")
+    
+    # Hugging Face Settings
+    hf_token: Optional[str] = Field(default=None, env="HF_TOKEN")
+    hf_space: Optional[str] = Field(default=None, env="HF_SPACE")
     
     @validator("data_dir", "raw_data_dir", pre=True)
     def convert_to_path(cls, v):
