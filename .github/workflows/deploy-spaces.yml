@@ -1,0 +1,96 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches:
+      - main  # main 브랜치에 push될 때 실행
+    paths:
+      - 'spaces/**'  # spaces/ 디렉토리 변경 시만 실행
+      - 'gradio_app.py'
+      - '.github/workflows/deploy-spaces.yml'
+  
+  workflow_dispatch:  # 수동 실행 가능
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          pip install huggingface_hub
+      
+      - name: Deploy to Hugging Face Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ secrets.HF_SPACE }}  # 예: username/etf-rag-agent
+        run: |
+          python - <<EOF
+          import os
+          from huggingface_hub import HfApi, create_repo
+          
+          token = os.getenv("HF_TOKEN")
+          space_id = os.getenv("HF_SPACE")
+          
+          if not token or not space_id:
+              print("❌ HF_TOKEN 또는 HF_SPACE 환경 변수가 설정되지 않았습니다.")
+              exit(1)
+          
+          api = HfApi(token=token)
+          
+          # Space가 없으면 생성
+          try:
+              create_repo(
+                  repo_id=space_id,
+                  token=token,
+                  repo_type="space",
+                  space_sdk="gradio",
+                  exist_ok=True
+              )
+              print(f"✅ Space '{space_id}' 준비 완료")
+          except Exception as e:
+              print(f"⚠️ Space 생성 중 오류 (이미 존재할 수 있음): {e}")
+          
+          # 파일 업로드
+          files_to_upload = [
+              ("spaces/app.py", "app.py"),
+              ("spaces/README.md", "README.md"),
+              ("spaces/requirements.txt", "requirements.txt"),
+          ]
+          
+          for local_path, remote_path in files_to_upload:
+              try:
+                  api.upload_file(
+                      path_or_fileobj=local_path,
+                      path_in_repo=remote_path,
+                      repo_id=space_id,
+                      repo_type="space",
+                      token=token
+                  )
+                  print(f"✅ 업로드 완료: {remote_path}")
+              except Exception as e:
+                  print(f"❌ 업로드 실패 ({remote_path}): {e}")
+                  exit(1)
+          
+          print(f"\n🎉 배포 완료!")
+          print(f"🔗 Space URL: https://huggingface.co/spaces/{space_id}")
+          EOF
+      
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "## 🎉 배포 성공!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Hugging Face Space에 성공적으로 배포되었습니다." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **Space URL**: https://huggingface.co/spaces/${{ secrets.HF_SPACE }}" >> $GITHUB_STEP_SUMMARY

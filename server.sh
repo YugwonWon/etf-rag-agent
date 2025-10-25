@@ -16,8 +16,11 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="$PROJECT_DIR/venv"
 LOG_FILE="$PROJECT_DIR/server.log"
 PID_FILE="$PROJECT_DIR/server.pid"
+GRADIO_LOG_FILE="$PROJECT_DIR/gradio.log"
+GRADIO_PID_FILE="$PROJECT_DIR/gradio.pid"
 HOST="0.0.0.0"
 PORT="8000"
+GRADIO_PORT="7860"
 
 # 도움말 출력
 show_help() {
@@ -29,8 +32,8 @@ show_help() {
     echo -e "  ${GREEN}./server.sh${NC} ${CYAN}<command>${NC} [options]"
     echo ""
     echo -e "${YELLOW}명령어:${NC}"
-    echo -e "  ${GREEN}start${NC}           서버 시작 (백그라운드)"
-    echo -e "  ${GREEN}stop${NC}            서버 중지"
+    echo -e "  ${GREEN}start${NC}           서버 시작 (백그라운드, FastAPI + Gradio)"
+    echo -e "  ${GREEN}stop${NC}            서버 중지 (FastAPI + Gradio)"
     echo -e "  ${GREEN}restart${NC}         서버 재시작"
     echo -e "  ${GREEN}status${NC}          서버 상태 확인 (상세)"
     echo -e "  ${GREEN}logs${NC}            로그 실시간 확인 (tail -f)"
@@ -110,10 +113,31 @@ start_server() {
     for i in {1..7}; do
         if curl -s "http://localhost:$PORT/api/health" > /dev/null 2>&1; then
             echo ""
-            echo -e "${GREEN}✓ 서버가 정상적으로 시작되었습니다!${NC}"
+            echo -e "${GREEN}✓ FastAPI 서버가 정상적으로 시작되었습니다!${NC}"
             echo -e "  ${CYAN}PID:${NC}      ${YELLOW}$PID${NC}"
             echo -e "  ${CYAN}URL:${NC}      ${YELLOW}http://localhost:$PORT${NC}"
             echo -e "  ${CYAN}Docs:${NC}     ${YELLOW}http://localhost:$PORT/docs${NC}"
+            
+            # Gradio UI 시작
+            echo ""
+            echo -e "${CYAN}▶  Gradio UI를 시작합니다...${NC}"
+            nohup python "$PROJECT_DIR/gradio_app.py" > "$GRADIO_LOG_FILE" 2>&1 &
+            echo $! > "$GRADIO_PID_FILE"
+            GRADIO_PID=$(cat "$GRADIO_PID_FILE")
+            
+            # Gradio 시작 대기
+            sleep 3
+            if ps -p "$GRADIO_PID" > /dev/null 2>&1; then
+                echo -e "${GREEN}✓ Gradio UI가 정상적으로 시작되었습니다!${NC}"
+                echo -e "  ${CYAN}PID:${NC}      ${YELLOW}$GRADIO_PID${NC}"
+                echo -e "  ${CYAN}URL:${NC}      ${YELLOW}http://localhost:$GRADIO_PORT${NC}"
+            else
+                echo -e "${YELLOW}⚠  Gradio UI 시작에 실패했습니다.${NC}"
+                echo -e "  로그 확인: ${YELLOW}cat $GRADIO_LOG_FILE${NC}"
+            fi
+            
+            echo ""
+            echo -e "${BLUE}📋 관리 명령어:${NC}"
             echo -e "  ${CYAN}로그:${NC}     ${GREEN}./server.sh logs${NC}"
             echo -e "  ${CYAN}상태:${NC}     ${GREEN}./server.sh status${NC}"
             echo -e "  ${CYAN}쿼리:${NC}     ${GREEN}python cli.py query \"질문\"${NC}"
@@ -136,50 +160,51 @@ stop_server() {
     echo -e "${GREEN}   ETF RAG Agent 서버 중지${NC}"
     echo -e "${GREEN}═══════════════════════════════════════════════════${NC}"
     
-    # PID 파일 확인
-    if [ ! -f "$PID_FILE" ]; then
-        echo -e "${YELLOW}⚠  PID 파일을 찾을 수 없습니다.${NC}"
-        echo -e "   uvicorn 프로세스를 모두 종료합니다..."
-        pkill -f "uvicorn app.main:app"
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}✓ 서버를 중지했습니다.${NC}"
-        else
-            echo -e "${YELLOW}⚠  실행 중인 서버를 찾을 수 없습니다.${NC}"
-        fi
-        return 0
-    fi
-    
-    # PID 읽기
-    PID=$(cat "$PID_FILE")
-    
-    # 프로세스 확인 및 종료
-    if ps -p "$PID" > /dev/null 2>&1; then
-        echo -e "${CYAN}▶  서버를 중지합니다... (PID: ${YELLOW}$PID${NC}${CYAN})${NC}"
-        kill "$PID"
-        
-        # 종료 대기 (최대 5초)
-        for i in {1..5}; do
+    # FastAPI 서버 중지
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE")
+        if ps -p "$PID" > /dev/null 2>&1; then
+            echo -e "${CYAN}▶  FastAPI 서버를 중지합니다... (PID: ${YELLOW}$PID${NC}${CYAN})${NC}"
+            kill "$PID"
+            sleep 2
             if ! ps -p "$PID" > /dev/null 2>&1; then
-                echo -e "${GREEN}✓ 서버가 정상적으로 중지되었습니다.${NC}"
-                rm -f "$PID_FILE"
-                return 0
+                echo -e "${GREEN}✓ FastAPI 서버가 중지되었습니다.${NC}"
+            else
+                echo -e "${YELLOW}⚠  강제 종료합니다...${NC}"
+                kill -9 "$PID" 2>/dev/null
             fi
-            sleep 1
-        done
-        
-        # 강제 종료
-        echo -e "${YELLOW}⚠  서버가 응답하지 않습니다. 강제 종료합니다...${NC}"
-        kill -9 "$PID" 2>/dev/null
-        rm -f "$PID_FILE"
-        echo -e "${GREEN}✓ 서버를 강제 종료했습니다.${NC}"
+            rm -f "$PID_FILE"
+        fi
     else
-        echo -e "${YELLOW}⚠  프로세스가 이미 종료되었습니다 (PID: $PID)${NC}"
-        rm -f "$PID_FILE"
+        echo -e "${YELLOW}⚠  FastAPI PID 파일을 찾을 수 없습니다.${NC}"
+        pkill -f "uvicorn app.main:app" 2>/dev/null
     fi
     
-    # 혹시 남아있을 수 있는 uvicorn 프로세스 정리
+    # Gradio UI 중지
+    if [ -f "$GRADIO_PID_FILE" ]; then
+        GRADIO_PID=$(cat "$GRADIO_PID_FILE")
+        if ps -p "$GRADIO_PID" > /dev/null 2>&1; then
+            echo -e "${CYAN}▶  Gradio UI를 중지합니다... (PID: ${YELLOW}$GRADIO_PID${NC}${CYAN})${NC}"
+            kill "$GRADIO_PID"
+            sleep 2
+            if ! ps -p "$GRADIO_PID" > /dev/null 2>&1; then
+                echo -e "${GREEN}✓ Gradio UI가 중지되었습니다.${NC}"
+            else
+                echo -e "${YELLOW}⚠  강제 종료합니다...${NC}"
+                kill -9 "$GRADIO_PID" 2>/dev/null
+            fi
+            rm -f "$GRADIO_PID_FILE"
+        fi
+    else
+        echo -e "${YELLOW}⚠  Gradio PID 파일을 찾을 수 없습니다.${NC}"
+        pkill -f "gradio_app.py" 2>/dev/null
+    fi
+    
+    # 남아있을 수 있는 프로세스 정리
     pkill -f "uvicorn app.main:app" 2>/dev/null
-    echo -e "${GREEN}✓ 서버 중지 완료${NC}"
+    pkill -f "gradio_app.py" 2>/dev/null
+    
+    echo -e "${GREEN}✓ 모든 서버가 중지되었습니다.${NC}"
 }
 
 # 서버 재시작
@@ -209,19 +234,38 @@ check_status() {
     
     # 서버 프로세스 상태
     echo -e "${BLUE}📊 서버 프로세스${NC}"
+    
+    # FastAPI 서버
+    echo -e "  ${CYAN}FastAPI 서버:${NC}"
     if [ -f "$PID_FILE" ]; then
         PID=$(cat "$PID_FILE")
         if ps -p "$PID" > /dev/null 2>&1; then
-            echo -e "  ${GREEN}✓ 실행 중${NC}"
-            echo -e "    PID:      ${YELLOW}$PID${NC}"
-            echo -e "    메모리:   ${YELLOW}$(ps -o rss= -p $PID | awk '{printf "%.1f MB", $1/1024}')${NC}"
-            echo -e "    CPU:      ${YELLOW}$(ps -o %cpu= -p $PID)%${NC}"
-            echo -e "    실행시간: ${YELLOW}$(ps -o etime= -p $PID | xargs)${NC}"
+            echo -e "    ${GREEN}✓ 실행 중${NC}"
+            echo -e "      PID:      ${YELLOW}$PID${NC}"
+            echo -e "      메모리:   ${YELLOW}$(ps -o rss= -p $PID | awk '{printf "%.1f MB", $1/1024}')${NC}"
+            echo -e "      CPU:      ${YELLOW}$(ps -o %cpu= -p $PID)%${NC}"
+            echo -e "      실행시간: ${YELLOW}$(ps -o etime= -p $PID | xargs)${NC}"
         else
-            echo -e "  ${RED}✗ 중지됨${NC} (PID 파일은 존재하지만 프로세스 없음)"
+            echo -e "    ${RED}✗ 중지됨${NC}"
         fi
     else
-        echo -e "  ${RED}✗ 중지됨${NC} (PID 파일 없음)"
+        echo -e "    ${RED}✗ 중지됨${NC}"
+    fi
+    
+    # Gradio UI
+    echo -e "  ${CYAN}Gradio UI:${NC}"
+    if [ -f "$GRADIO_PID_FILE" ]; then
+        GRADIO_PID=$(cat "$GRADIO_PID_FILE")
+        if ps -p "$GRADIO_PID" > /dev/null 2>&1; then
+            echo -e "    ${GREEN}✓ 실행 중${NC}"
+            echo -e "      PID:      ${YELLOW}$GRADIO_PID${NC}"
+            echo -e "      메모리:   ${YELLOW}$(ps -o rss= -p $GRADIO_PID | awk '{printf "%.1f MB", $1/1024}')${NC}"
+            echo -e "      URL:      ${YELLOW}http://localhost:$GRADIO_PORT${NC}"
+        else
+            echo -e "    ${RED}✗ 중지됨${NC}"
+        fi
+    else
+        echo -e "    ${RED}✗ 중지됨${NC}"
     fi
     
     echo ""

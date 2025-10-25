@@ -29,21 +29,26 @@
 
 ### 🎯 핵심 기능
 - **RAG 기반 질의응답**: 최신 ETF 정보를 바탕으로 정확한 답변 제공
+- **🖥️ Gradio 웹 UI**: 채팅 인터페이스로 쉽게 ETF 정보 질의 (로컬 & 클라우드)
 - **멀티소스 데이터 수집**:
   - 🇰🇷 국내 ETF (네이버 금융)
   - 🇺🇸 해외 ETF (yfinance)
   - 📄 공시 문서 (DART API)
 - **완전 무료 운영 가능**: 로컬 임베딩 모델로 OpenAI API 없이 사용 가능
-- **LLM 선택 옵션**: 로컬 오픈소스 LLM 또는 OpenAI GPT (선택)
+- **LLM 선택 옵션**: Ollama (qwen2.5:3b) 또는 OpenAI GPT (선택)
 - **자동 스케줄링**: 매일 자동으로 최신 ETF 정보 수집
 - **벡터 DB 관리**: 중복 제거 및 버전 관리로 효율적 저장
+- **☁️ 클라우드 배포**: Hugging Face Spaces 무료 배포 지원
 
 ### 🔧 기술 스택
 - **Backend**: FastAPI, gRPC (ConnectRPC)
+- **Frontend**: Gradio (Python 웹 UI)
 - **Vector DB**: Weaviate
-- **LLM**: OpenAI GPT-4 / Local LLM (llama.cpp)
+- **LLM**: Ollama (qwen2.5:3b) / OpenAI GPT-4
+- **Embedding**: sentence-transformers (all-MiniLM-L6-v2)
 - **Crawling**: BeautifulSoup4, yfinance, DART API
 - **Scheduler**: APScheduler
+- **Deployment**: Hugging Face Spaces + GitHub Actions
 
 ---
 
@@ -218,7 +223,26 @@ DART 공시 문서를 수집하려면:
 ./server.sh start --port 8080
 ```
 
-#### 2. CLI 클라이언트 사용
+#### 2. Gradio 웹 UI 사용 (권장)
+
+```bash
+# Gradio 의존성 설치
+pip install gradio
+
+# Gradio UI 실행
+python gradio_app.py
+
+# 브라우저에서 접속
+# http://localhost:7860
+```
+
+**Gradio UI 주요 기능:**
+- 💬 채팅 인터페이스로 ETF 질의
+- 📊 실시간 통계 확인
+- 📚 참고 문서 출처 표시
+- 🔍 검색 문서 수 조정 (top_k)
+
+#### 3. CLI 클라이언트 사용
 
 ```bash
 # 도움말
@@ -490,8 +514,48 @@ python -m app.retriever.query_handler
 ### 로그 확인
 
 ```bash
+# 서버 로그
+./server.sh logs
+
+# Gradio 로그
+tail -f gradio.log
+
+# 애플리케이션 로그
 tail -f logs/etf-rag-agent.log
 ```
+
+---
+
+## ☁️ 클라우드 배포
+
+### Hugging Face Spaces 무료 배포
+
+Gradio UI를 Hugging Face Spaces에 무료로 배포할 수 있습니다!
+
+**배포 단계:**
+
+1. **Hugging Face 계정 생성** ([가입하기](https://huggingface.co))
+2. **Access Token 생성** (Write 권한)
+3. **GitHub Secrets 설정**:
+   - `HF_TOKEN`: Hugging Face Access Token
+   - `HF_SPACE`: Space ID (예: `username/etf-rag-agent`)
+4. **코드 푸시**:
+   ```bash
+   git add spaces/
+   git commit -m "Deploy to Hugging Face Spaces"
+   git push origin main
+   ```
+5. **자동 배포**: GitHub Actions가 자동으로 배포 실행
+
+**상세 가이드**: [DEPLOYMENT.md](DEPLOYMENT.md) 참조
+
+**데모 URL 예시**: `https://huggingface.co/spaces/[username]/etf-rag-agent`
+
+**무료 옵션:**
+- ✅ Hugging Face Spaces (CPU basic)
+- ✅ Railway/Render/Fly.io 무료 플랜
+- ✅ GitHub Actions (월 2,000분 무료)
+
 
 ---
 
