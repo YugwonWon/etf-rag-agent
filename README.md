@@ -33,7 +33,8 @@
   - 🇰🇷 국내 ETF (네이버 금융)
   - 🇺🇸 해외 ETF (yfinance)
   - 📄 공시 문서 (DART API)
-- **LLM 선택 옵션**: OpenAI GPT 또는 로컬 오픈소스 LLM
+- **완전 무료 운영 가능**: 로컬 임베딩 모델로 OpenAI API 없이 사용 가능
+- **LLM 선택 옵션**: 로컬 오픈소스 LLM 또는 OpenAI GPT (선택)
 - **자동 스케줄링**: 매일 자동으로 최신 ETF 정보 수집
 - **벡터 DB 관리**: 중복 제거 및 버전 관리로 효율적 저장
 
@@ -123,12 +124,21 @@ pip install -r requirements.txt
 ### 5. Weaviate 실행 (Docker)
 
 ```bash
-docker run -d \
-  -p 8080:8080 \
+# 프로젝트 디렉토리에서 실행
+docker run -d --name weaviate \
+  -p 8081:8080 \
+  -p 50051:50051 \
+  -e QUERY_DEFAULTS_LIMIT=25 \
   -e AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true \
-  -e PERSISTENCE_DATA_PATH=/var/lib/weaviate \
-  semitechnologies/weaviate:latest
+  -e PERSISTENCE_DATA_PATH='/var/lib/weaviate' \
+  -e DEFAULT_VECTORIZER_MODULE='none' \
+  -e ENABLE_MODULES='' \
+  -e CLUSTER_HOSTNAME='node1' \
+  -v $(pwd)/data/weaviate:/var/lib/weaviate \
+  semitechnologies/weaviate:1.32.13
 ```
+
+> 💾 **데이터 저장 위치**: `./data/weaviate/` (프로젝트 내 로컬 디렉토리)
 
 ---
 
@@ -142,25 +152,29 @@ cp .env.example .env
 
 ### 2. `.env` 파일 수정
 
-필수 설정 항목:
+**기본 설정**:
 
 ```bash
 # LLM Provider 선택
-LLM_PROVIDER=openai  # or "local"
-
-# OpenAI API Key (openai 선택 시 필수)
-OPENAI_API_KEY=your-openai-api-key-here
-
-# DART API Key (선택 사항)
-DART_API_KEY=your-dart-api-key-here
+LLM_PROVIDER=local  # 로컬 모델 사용
 
 # Weaviate 설정
-WEAVIATE_URL=http://localhost:8080
+WEAVIATE_URL=http://localhost:8081
 
 # 스케줄러 설정
 ENABLE_SCHEDULER=true
 CRAWL_TIME_HOUR=9
 CRAWL_TIME_MINUTE=0
+```
+
+**선택 사항**:
+
+```bash
+# OpenAI API Key (유료, LLM_PROVIDER=openai 사용 시에만)
+# OPENAI_API_KEY=your-openai-api-key-here
+
+# DART API Key
+# DART_API_KEY=your-dart-api-key-here
 ```
 
 ### 3. DART API 키 발급 (선택)
@@ -174,7 +188,61 @@ DART 공시 문서를 수집하려면:
 
 ## 💻 사용 방법
 
-### 1. gRPC Proto 파일 생성
+### 🚀 빠른 시작 (통합 관리 스크립트)
+
+#### 1. 서버 관리
+
+```bash
+# 도움말 확인
+./server.sh --help
+
+# 서버 시작
+./server.sh start
+
+# 서버 상태 확인
+./server.sh status
+
+# 로그 실시간 확인
+./server.sh logs
+
+# 로그 마지막 50줄 확인
+./server.sh logs -n 50
+
+# 서버 중지
+./server.sh stop
+
+# 서버 재시작
+./server.sh restart
+
+# 포트 변경 (기본: 8000)
+./server.sh start --port 8080
+```
+
+#### 2. CLI 클라이언트 사용
+
+```bash
+# 도움말
+python cli.py --help
+
+# 서버 상태 확인
+python cli.py health
+
+# ETF 질의 (기본)
+python cli.py query "KODEX 200 ETF에 대해 설명해줘"
+
+# 상세 정보 포함
+python cli.py query "미국 S&P 500 ETF 추천해줘" --top-k 5 --verbose
+
+# 통계 정보 조회
+python cli.py stats
+
+# 데이터 수집 실행
+python cli.py collect
+```
+
+### 📖 전통적인 방법
+
+#### 1. gRPC Proto 파일 생성 (선택)
 
 ```bash
 python -m grpc_tools.protoc \
@@ -184,63 +252,65 @@ python -m grpc_tools.protoc \
   ./protos/etf_query.proto
 ```
 
-### 2. 서버 실행
+#### 2. 서버 직접 실행
 
-#### FastAPI REST 서버
-
+**FastAPI REST 서버**:
 ```bash
-python -m app.main
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 서버 실행 후: http://localhost:8000/docs
 
-#### gRPC 서버
-
+**gRPC 서버** (선택):
 ```bash
 python -m app.connect_rpc
 ```
 
-### 3. 초기 데이터 수집
+#### 3. 초기 데이터 수집
 
+**방법 1: CLI 사용 (권장)**
 ```bash
-# 방법 1: API 호출
-curl -X POST "http://localhost:8000/api/collection/trigger" \
-  -H "Content-Type: application/json" \
-  -d '{"domestic": true, "foreign": true, "dart": true}'
+python cli.py collect
+```
 
-# 방법 2: Python 스크립트 실행
-python -c "
+**방법 2: API 호출**
+```bash
+curl -X POST "http://localhost:8000/api/collect"
+```
+
+**방법 3: Python 스크립트**
+```python
 from app.crawler.collector import ETFDataCollector
 from app.vector_store.weaviate_handler import WeaviateHandler
 
 handler = WeaviateHandler()
-collector = ETFDataCollector(vector_handler=handler, model_type='openai')
+collector = ETFDataCollector(vector_handler=handler)
 results = collector.collect_all(insert_to_db=True)
-print(f'Total collected: {results[\"total\"]}')
-"
+print(f'Total collected: {results["total"]}')
 ```
 
-### 4. 질의응답 예시
+#### 4. 질의응답 예시
 
-#### REST API
+**CLI 사용 (권장)**:
+```bash
+python cli.py query "KODEX 200 ETF의 장단점은?" --verbose
+```
 
+**REST API**:
 ```bash
 curl -X POST "http://localhost:8000/api/query" \
   -H "Content-Type: application/json" \
   -d '{
-    "question": "KODEX 미국S&P500 ETF의 환헤지 여부는?",
-    "model_type": "openai",
-    "top_k": 5
+    "question": "KODEX 미국S&P500 ETF에 대해 알려줘",
+    "top_k": 3
   }'
 ```
 
-#### Python 클라이언트
-
+**Python 클라이언트**:
 ```python
 from app.retriever.query_handler import RAGQueryHandler
 
-handler = RAGQueryHandler(model_type="openai")
-
+handler = RAGQueryHandler()
 response = handler.query(
     question="TIGER 금선물 ETF의 총 보수는 얼마인가요?"
 )

@@ -1,61 +1,91 @@
-# Web Framework & Server
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-python-multipart==0.0.6
+# ========================================
+# ETF RAG Agent - Requirements
+# ========================================
+# Tested with Python 3.12.3
+# Last updated: 2025-10-25
+# Installation: pip install -r requirements.txt
 
-# gRPC & ConnectRPC
-grpcio==1.60.0
-grpcio-tools==1.60.0
-protobuf==4.25.2
+# ----------------------------------------
+# Core Web Framework
+# ----------------------------------------
+fastapi==0.120.0
+uvicorn==0.38.0
+python-dotenv==1.1.1
+pydantic==2.12.3
+pydantic-settings==2.11.0
 
+# ----------------------------------------
 # Vector Database
-weaviate-client==4.4.0
+# ----------------------------------------
+weaviate-client==4.17.0
 
-# LLM & Embeddings
-openai==1.10.0
-sentence-transformers==2.3.1
-langchain==0.1.4
-langchain-openai==0.0.5
+# ----------------------------------------
+# Machine Learning & Embeddings
+# ----------------------------------------
+# PyTorch CPU version (lighter, no CUDA required)
+# Install with: pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch==2.9.0
 
-# Local LLM (optional - for llama.cpp or transformers)
-llama-cpp-python==0.2.38
-transformers==4.37.0
-torch==2.1.2
-accelerate==0.26.1
+# Sentence Transformers for text embeddings
+sentence-transformers==5.1.2
+transformers==4.57.1
 
-# Web Scraping
-beautifulsoup4==4.12.3
-lxml==5.1.0
-selenium==4.17.2
-requests==2.31.0
+# OpenAI API (for GPT models and embeddings)
+openai==2.6.1
 
-# Finance Data
-yfinance==0.2.35
+# ----------------------------------------
+# Web Scraping & Data Collection
+# ----------------------------------------
+requests==2.32.5
+beautifulsoup4==4.14.2
+lxml==6.0.2
+yfinance==0.2.66
 
-# Scheduler
-APScheduler==3.10.4
+# ----------------------------------------
+# Task Scheduling
+# ----------------------------------------
+APScheduler==3.11.0
 
-# Environment & Config
-python-dotenv==1.0.1
-pydantic==2.5.3
-pydantic-settings==2.1.0
-
-# Utilities
-python-dateutil==2.8.2
-pytz==2024.1
-
-# PDF Processing (for ETF prospectus)
-PyPDF2==3.0.1
-pdfplumber==0.10.3
-
+# ----------------------------------------
 # Data Processing
-pandas==2.2.0
-numpy==1.26.3
+# ----------------------------------------
+pandas==2.3.3
+numpy==2.3.4
 
-# Logging
-loguru==0.7.2
+# ----------------------------------------
+# Utilities
+# ----------------------------------------
+loguru==0.7.3
 
-# Testing (optional)
-pytest==7.4.4
-pytest-asyncio==0.23.3
-httpx==0.26.0
+# ----------------------------------------
+# Optional: gRPC/Connect
+# ----------------------------------------
+# Uncomment if you need gRPC support
+# grpcio>=1.59.0
+# grpcio-tools>=1.59.0
+# protobuf>=4.25.0
+
+# ----------------------------------------
+# Development Tools (uncomment for dev)
+# ----------------------------------------
+# pytest>=7.4.0
+# black>=23.0.0
+# flake8>=6.0.0
+# mypy>=1.5.0
+
+# ----------------------------------------
+# Quick Start:
+# ----------------------------------------
+# 1. Install torch (CPU version):
+#    pip install torch --index-url https://download.pytorch.org/whl/cpu
+#
+# 2. Install other dependencies:
+#    pip install -r requirements.txt
+#
+# 3. Start Weaviate (from project root):
+#    docker run -d --name weaviate \
+#      -p 8081:8080 -p 50051:50051 \
+#      -e AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true \
+#      -e PERSISTENCE_DATA_PATH='/var/lib/weaviate' \
+#      -v $(pwd)/data/weaviate:/var/lib/weaviate \
+#      semitechnologies/weaviate:1.32.13
