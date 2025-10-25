@@ -5,7 +5,7 @@ colorFrom: blue
 colorTo: green
 sdk: gradio
 sdk_version: 4.44.0
-app_file: gradio_app.py
+app_file: app.py
 pinned: false
 license: mit
 short_description: 장기투자를 위한 국내외 ETF 정보 AI 어시스턴트
