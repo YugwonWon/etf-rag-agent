@@ -281,7 +281,7 @@ if __name__ == "__main__":
         
         collector = ETFDataCollector(
             vector_handler=vector_handler,
-            model_type="openai"  # or "local"
+            model_type="local" # openai, local
         )
         
         # Collect all data

@@ -19,7 +19,8 @@ class NaverETFCrawler:
     def __init__(self):
         """Initialize crawler"""
         self.base_url = "https://finance.naver.com"
-        self.etf_list_url = f"{self.base_url}/sise/etf.naver"
+        # Use API endpoint instead of HTML page (1033 ETFs available)
+        self.etf_list_url = f"{self.base_url}/api/sise/etfItemList.nhn"
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
@@ -27,64 +28,57 @@ class NaverETFCrawler:
     
     def get_etf_list(self) -> List[Dict[str, str]]:
         """
-        Get list of all domestic ETFs
+        Get list of all domestic ETFs from Naver Finance API
         
         Returns:
             List of ETF info dicts with code, name, etc.
         """
         try:
-            logger.info("Fetching ETF list from Naver Finance...")
+            logger.info("Fetching ETF list from Naver Finance API...")
             
             response = requests.get(self.etf_list_url, headers=self.headers)
             response.raise_for_status()
             
-            soup = BeautifulSoup(response.text, 'html.parser')
+            data = response.json()
             
-            # Find ETF table
-            table = soup.find("table", class_="type_1")
-            if not table:
-                logger.error("ETF table not found")
+            if data.get('resultCode') != 'success':
+                logger.error(f"API returned non-success: {data.get('resultCode')}")
+                return []
+            
+            result = data.get('result', {})
+            etf_list = result.get('etfItemList', [])
+            
+            if not etf_list:
+                logger.error("No ETF data in API response")
                 return []
             
             etfs = []
-            rows = table.find("tbody").find_all("tr")
-            
-            for row in rows:
-                cols = row.find_all("td")
-                if len(cols) < 7:
-                    continue
-                
-                # Extract ETF info
-                name_link = cols[1].find("a")
-                if not name_link:
-                    continue
-                
-                href = name_link.get("href", "")
-                code_match = re.search(r"code=(\d+)", href)
-                if not code_match:
-                    continue
-                
-                code = code_match.group(1)
-                name = name_link.text.strip()
-                
+            for item in etf_list:
                 try:
-                    price = cols[2].text.strip().replace(",", "")
-                    change = cols[3].text.strip()
-                    volume = cols[6].text.strip().replace(",", "")
+                    code = item.get('itemcode', '')
+                    name = item.get('itemname', '')
+                    price = item.get('nowVal', 0)
+                    change_rate = item.get('changeRate', 0.0)
+                    nav = item.get('nav', 0.0)
+                    volume = item.get('quant', 0)
+                    
+                    if not code or not name:
+                        continue
                     
                     etf_info = {
                         "code": code,
                         "name": name,
-                        "price": price,
-                        "change": change,
-                        "volume": volume,
+                        "price": str(price),
+                        "change_rate": f"{change_rate}%",
+                        "nav": str(nav),
+                        "volume": str(volume),
                         "url": f"{self.base_url}/item/main.naver?code={code}"
                     }
                     
                     etfs.append(etf_info)
                 
-                except (IndexError, AttributeError) as e:
-                    logger.debug(f"Error parsing row: {e}")
+                except Exception as e:
+                    logger.debug(f"Error parsing ETF item: {e}")
                     continue
             
             logger.info(f"Found {len(etfs)} ETFs")

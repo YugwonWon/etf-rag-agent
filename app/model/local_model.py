@@ -1,74 +1,64 @@
 """
 Local LLM Model Handler
-Handles interactions with local LLM models (using llama-cpp-python)
+Handles interactions with local LLM models (using Ollama)
 """
 
 from typing import List, Dict, Optional
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
 from loguru import logger
-
-try:
-    from llama_cpp import Llama
-    LLAMA_CPP_AVAILABLE = True
-except ImportError:
-    LLAMA_CPP_AVAILABLE = False
-    logger.warning("llama-cpp-python not installed. Local LLM will not work.")
+import requests
+import json
 
 
 class LocalModel:
-    """Local LLM Handler using llama.cpp"""
+    """Local LLM Handler using Ollama"""
     
     def __init__(
         self,
-        model_path: Optional[str] = None,
+        model_name: Optional[str] = None,
         embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
-        n_ctx: int = 4096,
-        n_threads: int = 4,
-        n_gpu_layers: int = 0
+        ollama_url: str = "http://localhost:11434"
     ):
         """
-        Initialize Local LLM
+        Initialize Local LLM with Ollama
         
         Args:
-            model_path: Path to GGUF model file
+            model_name: Ollama model name (e.g., 'qwen2.5:3b')
             embedding_model: HuggingFace model for embeddings
-            n_ctx: Context window size
-            n_threads: Number of CPU threads
-            n_gpu_layers: Number of layers to offload to GPU
+            ollama_url: Ollama API URL
         """
         from app.config import get_settings
         settings = get_settings()
         
-        self.model_path = model_path or settings.local_model_path
+        self.model_name = model_name or settings.local_model_type or "qwen2.5:3b"
+        self.ollama_url = ollama_url
+        self.api_endpoint = f"{ollama_url}/api/generate"
+        self.ollama_available = False  # Initialize as False
         
-        if not self.model_path:
-            raise ValueError("Local model path is required")
-        
-        if not Path(self.model_path).exists():
-            raise FileNotFoundError(f"Model file not found: {self.model_path}")
-        
-        if not LLAMA_CPP_AVAILABLE:
-            raise ImportError(
-                "llama-cpp-python is not installed. "
-                "Install it with: pip install llama-cpp-python"
-            )
-        
-        # Initialize LLM
-        logger.info(f"Loading local model from: {self.model_path}")
-        self.llm = Llama(
-            model_path=self.model_path,
-            n_ctx=n_ctx,
-            n_threads=n_threads,
-            n_gpu_layers=n_gpu_layers,
-            verbose=False
-        )
+        # Test Ollama connection
+        try:
+            response = requests.get(f"{ollama_url}/api/tags", timeout=5)
+            if response.status_code == 200:
+                self.ollama_available = True  # Set to True on success
+                logger.info(f"Connected to Ollama at {ollama_url}")
+                models = response.json().get("models", [])
+                model_names = [m.get("name") for m in models]
+                logger.info(f"Available models: {model_names}")
+                
+                if not any(self.model_name in name for name in model_names):
+                    logger.warning(f"Model {self.model_name} not found. Please run: ollama pull {self.model_name}")
+                    self.ollama_available = False  # Model not found
+            else:
+                logger.warning(f"Failed to connect to Ollama: {response.status_code}")
+        except Exception as e:
+            logger.warning(f"Could not connect to Ollama: {e}. Make sure Ollama is running.")
         
         # Initialize embedding model
         logger.info(f"Loading embedding model: {embedding_model}")
         self.embedding_model = SentenceTransformer(embedding_model)
         
-        logger.info("Local Model initialized successfully")
+        logger.info(f"Local Model initialized with Ollama model: {self.model_name}")
     
     def generate(
         self,
@@ -76,52 +66,104 @@ class LocalModel:
         system_prompt: Optional[str] = None,
         temperature: float = 0.7,
         max_tokens: int = 1000,
-        top_p: float = 0.9,
         **kwargs
     ) -> str:
         """
-        Generate response using local LLM
+        Generate response using Ollama
         
         Args:
             prompt: User prompt
             system_prompt: System instruction
             temperature: Sampling temperature
             max_tokens: Maximum tokens to generate
-            top_p: Nucleus sampling parameter
             **kwargs: Additional parameters
         
         Returns:
             Generated text response
         """
         try:
-            # Format prompt based on model type
-            # (This is a generic format; adjust for specific models like Llama, Mistral, etc.)
+            # Check if Ollama is available
+            if not self.ollama_available:
+                logger.warning("Ollama not available, returning context-based summary")
+                # Return a simple summary from the prompt
+                return self._generate_simple_summary(prompt)
+            
+            # Prepare request payload
+            payload = {
+                "model": self.model_name,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": temperature,
+                    "num_predict": max_tokens,
+                }
+            }
+            
             if system_prompt:
-                full_prompt = f"""<s>[INST] <<SYS>>
-{system_prompt}
-<</SYS>>
-
-{prompt} [/INST]"""
-            else:
-                full_prompt = f"<s>[INST] {prompt} [/INST]"
+                payload["system"] = system_prompt
             
-            response = self.llm(
-                full_prompt,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                echo=False,
-                **kwargs
+            # Make API request
+            response = requests.post(
+                self.api_endpoint,
+                json=payload,
+                timeout=120
             )
+            response.raise_for_status()
             
-            result = response["choices"][0]["text"].strip()
+            result = response.json().get("response", "").strip()
             logger.debug(f"Generated response: {result[:100]}...")
             
             return result
         
         except Exception as e:
             logger.error(f"Error generating response: {e}")
-            raise
+            # Fallback to simple summary
+            return self._generate_simple_summary(prompt)
+    
+    def _generate_simple_summary(self, prompt: str) -> str:
+        """
+        Generate a simple summary when Ollama is not available
+        
+        Args:
+            prompt: The prompt containing context and question
+        
+        Returns:
+            Simple formatted summary of the context
+        """
+        # Extract context documents from prompt
+        lines = prompt.split('\n')
+        
+        summary_parts = []
+        summary_parts.append("**제공된 정보를 기반으로 한 요약:**\n")
+        
+        # Find document sections
+        doc_sections = []
+        current_doc = []
+        for line in lines:
+            if line.startswith('[문서'):
+                if current_doc:
+                    doc_sections.append('\n'.join(current_doc))
+                current_doc = [line]
+            elif current_doc:
+                current_doc.append(line)
+        
+        if current_doc:
+            doc_sections.append('\n'.join(current_doc))
+        
+        # Add document summaries
+        for i, doc_section in enumerate(doc_sections[:3], 1):  # Max 3 documents
+            # Extract first 200 characters of each document
+            doc_lines = doc_section.split('\n')
+            if doc_lines:
+                header = doc_lines[0]
+                content = ' '.join(doc_lines[1:])[:300]
+                summary_parts.append(f"\n{header}")
+                summary_parts.append(f"{content}...\n")
+        
+        summary_parts.append("\n💡 **참고**: 더 상세한 답변을 위해서는 Ollama 서버를 실행해주세요.")
+        summary_parts.append("자세한 설치 방법: https://ollama.ai/")
+        
+        return '\n'.join(summary_parts)
     
     def generate_with_context(
         self,

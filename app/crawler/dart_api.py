@@ -13,6 +13,15 @@ from loguru import logger
 class DARTCrawler:
     """Crawler for DART ETF disclosure documents"""
     
+    # Major ETF asset management companies (corp_code from DART)
+    ETF_ASSET_MANAGERS = {
+        '삼성자산운용': '00260453',      # KODEX
+        '미래에셋자산운용': '00259776',  # TIGER
+        'KB자산운용': '00104500',        # KBSTAR
+        '한국투자신탁운용': '00324548',  # ACE
+        '신한자산운용': '00243553',      # SOL
+    }
+    
     def __init__(self, api_key: Optional[str] = None):
         """
         Initialize DART API crawler
@@ -80,13 +89,14 @@ class DARTCrawler:
         max_results: int = 100
     ) -> List[Dict[str, any]]:
         """
-        Search for ETF-related disclosure documents
+        Search for ETF-related disclosures
+        If corp_code is not provided, searches all major ETF asset managers
         
         Args:
             corp_code: Corporation code (optional)
             start_date: Start date (YYYYMMDD)
             end_date: End date (YYYYMMDD)
-            max_results: Maximum number of results
+            max_results: Maximum number of results per company
         
         Returns:
             List of disclosure documents
@@ -98,34 +108,49 @@ class DARTCrawler:
             # Default: last 30 days
             start_date = (datetime.now() - timedelta(days=30)).strftime("%Y%m%d")
         
-        params = {
-            "bgn_de": start_date,
-            "end_de": end_date,
-            "page_no": 1,
-            "page_count": min(max_results, 100)
-        }
-        
-        if corp_code:
-            params["corp_code"] = corp_code
-        
         logger.info(f"Searching DART disclosures from {start_date} to {end_date}")
         
-        data = self._make_request("list.json", params)
+        all_etf_disclosures = []
         
-        if not data or "list" not in data:
-            return []
+        # If corp_code provided, search only that company
+        if corp_code:
+            corp_codes = {corp_code: corp_code}
+        else:
+            # Search all major ETF asset managers
+            corp_codes = self.ETF_ASSET_MANAGERS
         
-        disclosures = data["list"]
+        for company_name, code in corp_codes.items():
+            params = {
+                "corp_code": code,
+                "bgn_de": start_date,
+                "end_de": end_date,
+                "page_no": 1,
+                "page_count": min(max_results, 100)
+            }
+            
+            data = self._make_request("list.json", params)
+            
+            if not data or "list" not in data:
+                continue
+            
+            disclosures = data["list"]
+            
+            # Filter ETF-related disclosures (KODEX, TIGER, etc.)
+            etf_keywords = ["ETF", "상장지수", "KODEX", "TIGER", "KBSTAR", "ACE", "SOL", "ARIRANG"]
+            etf_disclosures = [
+                d for d in disclosures
+                if any(keyword in d.get("report_nm", "").upper() for keyword in etf_keywords) or
+                   "상장지수" in d.get("report_nm", "")
+            ]
+            
+            logger.debug(f"Found {len(etf_disclosures)} ETF disclosures from {company_name}")
+            all_etf_disclosures.extend(etf_disclosures)
+            
+            # Rate limiting
+            time.sleep(0.3)
         
-        # Filter ETF-related disclosures
-        etf_disclosures = [
-            d for d in disclosures
-            if "ETF" in d.get("report_nm", "").upper() or
-               "상장지수" in d.get("report_nm", "")
-        ]
-        
-        logger.info(f"Found {len(etf_disclosures)} ETF-related disclosures")
-        return etf_disclosures
+        logger.info(f"Found {len(all_etf_disclosures)} ETF-related disclosures")
+        return all_etf_disclosures
     
     def get_company_info(self, corp_code: str) -> Optional[Dict[str, any]]:
         """
