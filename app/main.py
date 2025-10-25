@@ -91,7 +91,12 @@ def get_vector_handler():
     """Get or create vector handler"""
     global vector_handler
     if vector_handler is None:
-        vector_handler = WeaviateHandler()
+        try:
+            vector_handler = WeaviateHandler()
+            logger.info("Vector handler initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize vector handler: {e}")
+            raise
     return vector_handler
 
 
@@ -99,10 +104,15 @@ def get_rag_handler(model_type: str = None):
     """Get or create RAG handler"""
     global rag_handler
     if rag_handler is None or (model_type and rag_handler.model_type != model_type):
-        rag_handler = RAGQueryHandler(
-            vector_handler=get_vector_handler(),
-            model_type=model_type
-        )
+        try:
+            rag_handler = RAGQueryHandler(
+                vector_handler=get_vector_handler(),
+                model_type=model_type
+            )
+            logger.info(f"RAG handler initialized with model type: {model_type or 'default'}")
+        except Exception as e:
+            logger.error(f"Failed to initialize RAG handler: {e}")
+            raise
     return rag_handler
 
 
@@ -110,10 +120,15 @@ def get_collector():
     """Get or create collector"""
     global collector
     if collector is None:
-        collector = ETFDataCollector(
-            vector_handler=get_vector_handler(),
-            model_type=settings.llm_provider
-        )
+        try:
+            collector = ETFDataCollector(
+                vector_handler=get_vector_handler(),
+                model_type=settings.llm_provider
+            )
+            logger.info("Collector initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize collector: {e}")
+            raise
     return collector
 
 
@@ -121,21 +136,47 @@ def get_collector():
 @app.on_event("startup")
 async def startup_event():
     """Initialize components on startup"""
+    logger.info("=" * 60)
     logger.info("Starting ETF RAG Agent API server...")
+    logger.info(f"Environment: {settings.environment}")
+    logger.info(f"Scheduler enabled: {settings.enable_scheduler}")
+    logger.info(f"Initial collection: {settings.run_initial_collection}")
     
-    # Initialize components
-    get_vector_handler()
-    get_rag_handler()
+    try:
+        # Initialize vector handler first
+        logger.info("Initializing vector handler...")
+        get_vector_handler()
+        logger.info("✓ Vector handler ready")
+        
+        # Initialize RAG handler
+        logger.info("Initializing RAG handler...")
+        get_rag_handler()
+        logger.info("✓ RAG handler ready")
+    except Exception as e:
+        logger.error(f"Failed to initialize components: {e}")
+        logger.warning("Server will start but some features may not work")
+    
+    logger.info("=" * 60)
     
     # Start scheduler if enabled
     if settings.enable_scheduler:
-        global scheduler
-        scheduler = get_scheduler()
-        # run_immediately는 RUN_INITIAL_COLLECTION 환경 변수로 제어
-        # Render 배포 시: False (포트 스캔 타임아웃 방지)
-        # 로컬 개발 시: True (최신 데이터 보장)
-        scheduler.start(run_immediately=settings.run_initial_collection)
-        logger.info(f"Scheduler started (initial collection: {settings.run_initial_collection})")
+        try:
+            logger.info("Starting scheduler...")
+            global scheduler
+            scheduler = get_scheduler()
+            # run_immediately는 RUN_INITIAL_COLLECTION 환경 변수로 제어
+            # Render 배포 시: False (포트 스캔 타임아웃 방지)
+            # 로컬 개발 시: True (최신 데이터 보장)
+            scheduler.start(run_immediately=settings.run_initial_collection)
+            logger.info(f"✓ Scheduler started (initial collection: {settings.run_initial_collection})")
+        except Exception as e:
+            logger.error(f"Failed to start scheduler: {e}")
+            logger.warning("Scheduler disabled")
+    else:
+        logger.info("Scheduler disabled (ENABLE_SCHEDULER=false)")
+    
+    logger.info("=" * 60)
+    logger.info("🚀 Server ready to accept connections")
     
     logger.info("API server started successfully")
 
@@ -145,11 +186,19 @@ async def shutdown_event():
     """Cleanup on shutdown"""
     logger.info("Shutting down API server...")
     
-    if scheduler:
-        scheduler.stop()
+    try:
+        if scheduler:
+            scheduler.stop()
+            logger.info("✓ Scheduler stopped")
+    except Exception as e:
+        logger.error(f"Error stopping scheduler: {e}")
     
-    if vector_handler:
-        vector_handler.close()
+    try:
+        if vector_handler:
+            vector_handler.close()
+            logger.info("✓ Vector handler closed")
+    except Exception as e:
+        logger.error(f"Error closing vector handler: {e}")
     
     logger.info("API server stopped")
 
@@ -158,7 +207,7 @@ async def shutdown_event():
 async def root():
     """Root endpoint"""
     return {
-        "name": "ETF RAG Agent API",
+        "service": "ETF RAG Agent API",
         "version": "0.1.0",
         "status": "running",
         "endpoints": {
