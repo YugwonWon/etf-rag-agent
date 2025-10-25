@@ -1,0 +1,91 @@
+# ========================================
+# ETF RAG Agent - Requirements
+# ========================================
+# Tested with Python 3.12.3
+# Last updated: 2025-10-25
+# Installation: pip install -r requirements.txt
+
+# ----------------------------------------
+# Core Web Framework
+# ----------------------------------------
+fastapi==0.120.0
+uvicorn==0.38.0
+python-dotenv==1.1.1
+pydantic==2.12.3
+pydantic-settings==2.11.0
+
+# ----------------------------------------
+# Vector Database
+# ----------------------------------------
+weaviate-client==4.17.0
+
+# ----------------------------------------
+# Machine Learning & Embeddings
+# ----------------------------------------
+# PyTorch CPU version (lighter, no CUDA required)
+# Install with: pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch==2.9.0
+
+# Sentence Transformers for text embeddings
+sentence-transformers==5.1.2
+transformers==4.57.1
+
+# OpenAI API (for GPT models and embeddings)
+openai==2.6.1
+
+# ----------------------------------------
+# Web Scraping & Data Collection
+# ----------------------------------------
+requests==2.32.5
+beautifulsoup4==4.14.2
+lxml==6.0.2
+yfinance==0.2.66
+
+# ----------------------------------------
+# Task Scheduling
+# ----------------------------------------
+APScheduler==3.11.0
+
+# ----------------------------------------
+# Data Processing
+# ----------------------------------------
+pandas==2.3.3
+numpy==2.3.4
+
+# ----------------------------------------
+# Utilities
+# ----------------------------------------
+loguru==0.7.3
+
+# ----------------------------------------
+# Optional: gRPC/Connect
+# ----------------------------------------
+# Uncomment if you need gRPC support
+# grpcio>=1.59.0
+# grpcio-tools>=1.59.0
+# protobuf>=4.25.0
+
+# ----------------------------------------
+# Development Tools (uncomment for dev)
+# ----------------------------------------
+# pytest>=7.4.0
+# black>=23.0.0
+# flake8>=6.0.0
+# mypy>=1.5.0
+
+# ----------------------------------------
+# Quick Start:
+# ----------------------------------------
+# 1. Install torch (CPU version):
+#    pip install torch --index-url https://download.pytorch.org/whl/cpu
+#
+# 2. Install other dependencies:
+#    pip install -r requirements.txt
+#
+# 3. Start Weaviate (from project root):
+#    docker run -d --name weaviate \
+#      -p 8081:8080 -p 50051:50051 \
+#      -e AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true \
+#      -e PERSISTENCE_DATA_PATH='/var/lib/weaviate' \
+#      -v $(pwd)/data/weaviate:/var/lib/weaviate \
+#      semitechnologies/weaviate:1.32.13

@@ -1,0 +1,12 @@
+{
+  "last_updated": null,
+  "etf_count": {
+    "domestic": 0,
+    "foreign": 0
+  },
+  "data_sources": {
+    "naver": "https://finance.naver.com",
+    "yfinance": "Yahoo Finance API",
+    "dart": "https://opendart.fss.or.kr"
+  }
+}

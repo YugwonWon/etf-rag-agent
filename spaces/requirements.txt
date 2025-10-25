@@ -1,0 +1,4 @@
+# Gradio UI만 필요한 최소한의 의존성
+gradio>=4.44.0
+requests>=2.31.0
+python-dotenv>=1.0.0
