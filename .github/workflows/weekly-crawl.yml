@@ -1,0 +1,110 @@
+name: Weekly ETF Data Collection
+on: # 매주 일요일 오전 9시 (한국 시간) = 일요일 00:00 UTC
+  schedule:
+    - cron: '0 0 * * 0'  # Every Sunday at 00:00 UTC (09:00 KST)
+  
+  workflow_dispatch:  # 수동 실행 가능
+
+jobs:
+  collect-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run ETF data collection
+        env:
+          # Weaviate Cloud
+          WEAVIATE_URL: ${{ secrets.WEAVIATE_URL }}
+          WEAVIATE_API_KEY: ${{ secrets.WEAVIATE_API_KEY }}
+          WEAVIATE_CLASS_NAME: ETFDocument
+          
+          # LLM & Embedding
+          LLM_PROVIDER: openai
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: gpt-4o-mini
+          OPENAI_EMBEDDING_MODEL: text-embedding-3-small
+          EMBEDDING_MODEL: text-embedding-3-small
+          EMBEDDING_DIM: 1536
+          
+          # Data Collection
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          NAVER_ETF_LIST_URL: https://finance.naver.com/sise/etf.naver
+          
+          # Settings
+          CRAWLING_TIMEOUT: 60
+          DOMESTIC_MAX_ETFS: 100
+          FOREIGN_MAX_ETFS: 50
+          LOG_LEVEL: INFO
+        run: |
+          python -c "
+          import sys
+          from loguru import logger
+          from app.crawler.collector import ETFDataCollector
+          from app.vector_store.weaviate_handler import WeaviateHandler
+          
+          logger.info('Starting weekly ETF data collection...')
+          
+          try:
+              # Initialize components
+              vector_handler = WeaviateHandler()
+              collector = ETFDataCollector(
+                  vector_handler=vector_handler,
+                  model_type='openai'
+              )
+              
+              # Collect all data
+              logger.info('Collecting ETF data from all sources...')
+              results = collector.collect_all(
+                  domestic_max=100,
+                  foreign_tickers=None,  # Use default list
+                  dart_days=7,  # Last 7 days
+                  insert_to_db=True
+              )
+              
+              # Print results
+              logger.info('=' * 60)
+              logger.info('Weekly collection completed successfully!')
+              logger.info(f\"  Domestic ETFs: {len(results.get('domestic', []))}\")
+              logger.info(f\"  Foreign ETFs: {len(results.get('foreign', []))}\")
+              logger.info(f\"  DART Documents: {len(results.get('dart', []))}\")
+              logger.info(f\"  Total: {results.get('total', 0)}\")
+              logger.info('=' * 60)
+              
+              # Get total document count
+              total_docs = vector_handler.get_document_count()
+              logger.info(f'Total documents in Weaviate: {total_docs}')
+              
+              # Close connection
+              vector_handler.close()
+              
+              sys.exit(0)
+          
+          except Exception as e:
+              logger.error(f'Error in weekly collection: {e}')
+              logger.exception(e)
+              sys.exit(1)
+          "
+      
+      - name: Summary
+        if: success()
+        run: |
+          echo "✅ Weekly ETF data collection completed successfully!"
+          echo "📊 Check the logs above for details"
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Weekly data collection failed!"
+          echo "Please check the logs above for error details"

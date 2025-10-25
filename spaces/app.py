@@ -9,7 +9,8 @@ import requests
 from typing import List, Tuple
 
 # API 서버 설정
-API_BASE_URL = os.getenv("API_BASE_URL", "https://huggingface.co/spaces/Yugwon/etf-rag-agent")
+# Render 배포 URL로 변경 필요!
+API_BASE_URL = os.getenv("API_BASE_URL", "https://etf-rag-agent.onrender.com")  # 로컬 기본값
 
 # 스타일링을 위한 CSS
 custom_css = """

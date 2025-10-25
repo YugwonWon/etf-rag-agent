@@ -131,8 +131,11 @@ async def startup_event():
     if settings.enable_scheduler:
         global scheduler
         scheduler = get_scheduler()
-        scheduler.start(run_immediately=False)
-        logger.info("Scheduler started")
+        # run_immediately는 RUN_INITIAL_COLLECTION 환경 변수로 제어
+        # Render 배포 시: False (포트 스캔 타임아웃 방지)
+        # 로컬 개발 시: True (최신 데이터 보장)
+        scheduler.start(run_immediately=settings.run_initial_collection)
+        logger.info(f"Scheduler started (initial collection: {settings.run_initial_collection})")
     
     logger.info("API server started successfully")
 

@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     crawl_time_hour: int = Field(default=9, env="CRAWL_TIME_HOUR")
     crawl_time_minute: int = Field(default=0, env="CRAWL_TIME_MINUTE")
     enable_scheduler: bool = Field(default=True, env="ENABLE_SCHEDULER")
+    run_initial_collection: bool = Field(default=False, env="RUN_INITIAL_COLLECTION")  # 서버 시작 시 즉시 실행 여부
     
     # Server
     api_host: str = Field(default="0.0.0.0", env="API_HOST")
