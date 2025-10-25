@@ -23,7 +23,9 @@ class Settings(BaseSettings):
     
     # Local LLM
     local_model_path: Optional[str] = Field(default=None, env="LOCAL_MODEL_PATH")
-    local_model_type: str = Field(default="llama", env="LOCAL_MODEL_TYPE")
+    local_model_type: str = Field(default="qwen2.5:3b", env="LOCAL_MODEL_TYPE")
+    ollama_base_url: str = Field(default="http://localhost:11434", env="OLLAMA_BASE_URL")
+    ollama_api_key: Optional[str] = Field(default=None, env="OLLAMA_API_KEY")
     
     # Weaviate
     weaviate_url: str = Field(default="http://localhost:8080", env="WEAVIATE_URL")

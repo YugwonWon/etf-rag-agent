@@ -49,15 +49,24 @@ class WeaviateHandler:
         
         # Connect to Weaviate
         try:
-            if self.api_key:
-                self.client = weaviate.connect_to_wcs(
+            # Only use Weaviate Cloud if API key is provided and not empty
+            if self.api_key and self.api_key.strip():
+                self.client = weaviate.connect_to_weaviate_cloud(
                     cluster_url=self.url,
                     auth_credentials=Auth.api_key(self.api_key)
                 )
             else:
+                # Parse URL for local connection
+                from urllib.parse import urlparse
+                parsed = urlparse(self.url)
+                host = parsed.hostname or 'localhost'
+                port = parsed.port or 8080
+                
+                # Connect with minimal configuration (gRPC will try 50051 but we skip checks)
                 self.client = weaviate.connect_to_local(
-                    host=self.url.replace("http://", "").replace("https://", "").split(":")[0],
-                    port=int(self.url.split(":")[-1]) if ":" in self.url else 8080
+                    host=host,
+                    port=port,
+                    skip_init_checks=True  # Skip gRPC health check
                 )
             
             logger.info(f"Connected to Weaviate at {self.url}")
@@ -75,7 +84,14 @@ class WeaviateHandler:
             # Check if collection exists
             collections = self.client.collections.list_all()
             
-            if self.class_name not in [c.name for c in collections]:
+            # Handle both dict and object collection responses
+            collection_names = []
+            if isinstance(collections, dict):
+                collection_names = list(collections.keys())
+            else:
+                collection_names = [c.name for c in collections]
+            
+            if self.class_name not in collection_names:
                 logger.info(f"Creating collection: {self.class_name}")
                 
                 # Create collection with schema
@@ -224,7 +240,7 @@ class WeaviateHandler:
                     "etf_name": etf_name,
                     "content": content,
                     "content_hash": content_hash,
-                    "date": datetime.now().isoformat(),
+                    "date": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),  # RFC3339 without microseconds
                     "version": version,
                     "source": source,
                     "etf_type": etf_type,
@@ -403,10 +419,16 @@ class WeaviateHandler:
         """Get total document count"""
         try:
             collection = self.client.collections.get(self.class_name)
-            aggregate = collection.aggregate.over_all(total_count=True)
-            return aggregate.total_count
+            # Use REST API query instead of gRPC aggregate
+            response = collection.query.fetch_objects(limit=1)
+            # Get total count from metadata if available
+            if hasattr(response, 'objects'):
+                # Do a simple count query
+                all_objects = collection.query.fetch_objects(limit=10000)
+                return len(all_objects.objects)
+            return 0
         except Exception as e:
-            logger.error(f"Error getting count: {e}")
+            logger.warning(f"Error getting count (this is ok for empty DB): {e}")
             return 0
     
     def close(self):
