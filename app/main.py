@@ -1,29 +1,49 @@
 """
 FastAPI REST Server for ETF RAG Agent
 """
+print("🔵 main.py: Starting imports...")
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks
+print("🔵 FastAPI imported")
+
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
 from datetime import datetime
 import json
+print("🔵 Standard libraries imported")
+
 from loguru import logger
+print("🔵 loguru imported")
 
 from app.config import get_settings
+print("🔵 config imported")
+
 from app.retriever.query_handler import RAGQueryHandler
+print("🔵 query_handler imported")
+
 from app.vector_store.weaviate_handler import WeaviateHandler
+print("🔵 weaviate_handler imported")
+
 from app.crawler.collector import ETFDataCollector
+print("🔵 collector imported")
+
 from app.scheduler import get_scheduler
+print("🔵 scheduler imported")
+
+print("✅ All imports successful")
 
 
+print("🔵 Creating FastAPI app...")
 # Initialize FastAPI app
 app = FastAPI(
     title="ETF RAG Agent API",
     description="RAG-based ETF information query system",
     version="0.1.0"
 )
+print("✅ FastAPI app created")
 
+print("🔵 Adding CORS middleware...")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -32,13 +52,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+print("✅ CORS middleware added")
 
+print("🔵 Initializing settings...")
 # Global instances
 settings = get_settings()
+print(f"✅ Settings loaded: {settings.environment}")
+
 vector_handler = None
 rag_handler = None
 collector = None
 scheduler = None
+print("✅ Global variables initialized")
+
+print("=" * 60)
+print("🎉 main.py module initialization complete")
+print("=" * 60)
 
 
 # Pydantic models
@@ -135,48 +164,25 @@ def get_collector():
 # API Endpoints
 @app.on_event("startup")
 async def startup_event():
-    """Initialize components on startup"""
+    """Initialize components on startup - FAIL SAFE"""
+    global vector_handler, rag_handler, scheduler
+    
+    print("=" * 60)
+    print("🚀 ETF RAG Agent API - Starting up...")
+    print(f"Environment: {settings.environment}")
+    print(f"Scheduler: {settings.enable_scheduler}")
+    print(f"Initial collection: {settings.run_initial_collection}")
+    print("=" * 60)
+    
+    # Critical: Log to stdout for Render visibility
     logger.info("=" * 60)
     logger.info("Starting ETF RAG Agent API server...")
     logger.info(f"Environment: {settings.environment}")
-    logger.info(f"Scheduler enabled: {settings.enable_scheduler}")
-    logger.info(f"Initial collection: {settings.run_initial_collection}")
     
-    try:
-        # Initialize vector handler first
-        logger.info("Initializing vector handler...")
-        get_vector_handler()
-        logger.info("✓ Vector handler ready")
-        
-        # Initialize RAG handler
-        logger.info("Initializing RAG handler...")
-        get_rag_handler()
-        logger.info("✓ RAG handler ready")
-    except Exception as e:
-        logger.error(f"Failed to initialize components: {e}")
-        logger.warning("Server will start but some features may not work")
-    
+    # DO NOT block startup with initialization
+    # Let the server start first, initialize in background
+    logger.info("Server starting... (components will initialize in background)")
     logger.info("=" * 60)
-    
-    # Start scheduler if enabled
-    if settings.enable_scheduler:
-        try:
-            logger.info("Starting scheduler...")
-            global scheduler
-            scheduler = get_scheduler()
-            # run_immediately는 RUN_INITIAL_COLLECTION 환경 변수로 제어
-            # Render 배포 시: False (포트 스캔 타임아웃 방지)
-            # 로컬 개발 시: True (최신 데이터 보장)
-            scheduler.start(run_immediately=settings.run_initial_collection)
-            logger.info(f"✓ Scheduler started (initial collection: {settings.run_initial_collection})")
-        except Exception as e:
-            logger.error(f"Failed to start scheduler: {e}")
-            logger.warning("Scheduler disabled")
-    else:
-        logger.info("Scheduler disabled (ENABLE_SCHEDULER=false)")
-    
-    logger.info("=" * 60)
-    logger.info("🚀 Server ready to accept connections")
     
     logger.info("API server started successfully")
 
@@ -205,18 +211,13 @@ async def shutdown_event():
 
 @app.get("/", tags=["General"])
 async def root():
-    """Root endpoint"""
+    """Root endpoint - Simple health check"""
     return {
         "service": "ETF RAG Agent API",
         "version": "0.1.0",
         "status": "running",
-        "endpoints": {
-            "query": "/api/query",
-            "summary": "/api/etf/{etf_code}",
-            "collection": "/api/collection/trigger",
-            "health": "/api/health",
-            "docs": "/docs"
-        }
+        "message": "Server is alive",
+        "timestamp": datetime.now().isoformat()
     }
 
 
