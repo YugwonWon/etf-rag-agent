@@ -59,12 +59,18 @@ class ETFScheduler:
             if not self.collector:
                 self.initialize_components()
             
-            # Collect all data
+            # Collect all data (using config settings)
+            logger.info(f"Collection limits: Domestic={self.settings.max_domestic_etfs}, Foreign={self.settings.max_foreign_etfs}, DART={self.settings.max_dart_docs}")
+            
             results = self.collector.collect_all(
-                domestic_max=None,  # Collect all
+                domestic_max=self.settings.max_domestic_etfs,  # Use config limit
                 foreign_tickers=None,  # Use default list
+                foreign_max=self.settings.max_foreign_etfs,  # Use config limit
                 dart_days=7,  # Last week
-                insert_to_db=True
+                dart_max=self.settings.max_dart_docs,  # Use config limit
+                insert_to_db=True,
+                only_outdated=self.settings.collect_only_outdated,  # Use config
+                days_threshold=self.settings.update_threshold_days  # Use config
             )
             
             # Update metadata

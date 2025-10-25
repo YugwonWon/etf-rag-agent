@@ -48,6 +48,13 @@ class Settings(BaseSettings):
     crawl_time_minute: int = Field(default=0, env="CRAWL_TIME_MINUTE")
     enable_scheduler: bool = Field(default=True, env="ENABLE_SCHEDULER")
     run_initial_collection: bool = Field(default=False, env="RUN_INITIAL_COLLECTION")  # 서버 시작 시 즉시 실행 여부
+    collect_only_outdated: bool = Field(default=True, env="COLLECT_ONLY_OUTDATED")  # 최근 N일 이내 업데이트 안 된 것만 수집
+    update_threshold_days: int = Field(default=7, env="UPDATE_THRESHOLD_DAYS")  # 갱신 기준 일수
+    
+    # Data Collection Limits
+    max_domestic_etfs: Optional[int] = Field(default=None, env="MAX_DOMESTIC_ETFS")  # 국내 ETF 최대 수집 개수
+    max_foreign_etfs: Optional[int] = Field(default=None, env="MAX_FOREIGN_ETFS")  # 해외 ETF 최대 수집 개수
+    max_dart_docs: Optional[int] = Field(default=None, env="MAX_DART_DOCS")  # DART 공시 최대 수집 개수
     
     # Server
     api_host: str = Field(default="0.0.0.0", env="API_HOST")

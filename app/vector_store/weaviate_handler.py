@@ -431,6 +431,51 @@ class WeaviateHandler:
             logger.warning(f"Error getting count (this is ok for empty DB): {e}")
             return 0
     
+    def get_etf_codes_needing_update(self, days: int = 7) -> List[str]:
+        """
+        Get ETF codes that need updating (last updated more than N days ago or never updated)
+        
+        Args:
+            days: Number of days threshold
+            
+        Returns:
+            List of ETF codes that need updating
+        """
+        try:
+            from datetime import datetime, timedelta
+            
+            cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            collection = self.client.collections.get(self.class_name)
+            
+            # Get all unique ETF codes with their latest update date
+            all_results = collection.query.fetch_objects(
+                limit=10000,
+                return_properties=["etf_code", "date"]
+            )
+            
+            # Group by ETF code and find latest date
+            etf_latest_date = {}
+            for obj in all_results.objects:
+                code = obj.properties.get("etf_code")
+                date = obj.properties.get("date")
+                
+                if code:
+                    if code not in etf_latest_date or date > etf_latest_date[code]:
+                        etf_latest_date[code] = date
+            
+            # Find codes that need updating
+            codes_needing_update = [
+                code for code, date in etf_latest_date.items()
+                if date < cutoff_date
+            ]
+            
+            logger.info(f"Found {len(codes_needing_update)} ETFs needing update (older than {days} days)")
+            return codes_needing_update
+            
+        except Exception as e:
+            logger.error(f"Error getting ETF codes needing update: {e}")
+            return []
+    
     def close(self):
         """Close Weaviate connection"""
         try:

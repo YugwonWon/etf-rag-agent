@@ -40,7 +40,9 @@ class ETFDataCollector:
     def collect_domestic_etfs(
         self,
         max_items: Optional[int] = None,
-        insert_to_db: bool = False
+        insert_to_db: bool = False,
+        only_outdated: bool = False,
+        days_threshold: int = 7
     ) -> List[Dict[str, any]]:
         """
         Collect domestic ETF data from Naver
@@ -48,17 +50,30 @@ class ETFDataCollector:
         Args:
             max_items: Maximum number of ETFs to collect
             insert_to_db: Whether to insert into vector DB
+            only_outdated: Only collect ETFs not updated in last N days
+            days_threshold: Number of days for outdated check
         
         Returns:
             List of formatted ETF data
         """
         logger.info("Collecting domestic ETFs from Naver...")
         
+        # Get list of ETFs needing update if filtering enabled
+        etf_filter_codes = None
+        if only_outdated and self.vector_handler:
+            etf_filter_codes = self.vector_handler.get_etf_codes_needing_update(days=days_threshold)
+            logger.info(f"Filtering to {len(etf_filter_codes)} ETFs needing update (>{days_threshold} days old)")
+        
         # Crawl ETFs
         etfs = self.naver_crawler.get_all_etf_details(
             max_items=max_items,
             delay=0.5
         )
+        
+        # Filter by codes if needed
+        if etf_filter_codes is not None:
+            etfs = [etf for etf in etfs if etf.get('code') in etf_filter_codes]
+            logger.info(f"Filtered down to {len(etfs)} ETFs after applying date filter")
         
         # Format for vector DB
         formatted_etfs = []
@@ -77,7 +92,8 @@ class ETFDataCollector:
     def collect_foreign_etfs(
         self,
         tickers: Optional[List[str]] = None,
-        insert_to_db: bool = False
+        insert_to_db: bool = False,
+        max_items: Optional[int] = None
     ) -> List[Dict[str, any]]:
         """
         Collect foreign ETF data from yfinance
@@ -85,6 +101,7 @@ class ETFDataCollector:
         Args:
             tickers: List of tickers (uses default if None)
             insert_to_db: Whether to insert into vector DB
+            max_items: Maximum number of ETFs to collect
         
         Returns:
             List of formatted ETF data
@@ -93,6 +110,11 @@ class ETFDataCollector:
         
         # Crawl ETFs
         etfs = self.yfinance_crawler.get_all_etf_info(tickers=tickers)
+        
+        # Apply max_items limit if specified
+        if max_items is not None and len(etfs) > max_items:
+            logger.info(f"Limiting foreign ETFs from {len(etfs)} to {max_items}")
+            etfs = etfs[:max_items]
         
         # Format for vector DB
         formatted_etfs = []
@@ -111,7 +133,8 @@ class ETFDataCollector:
     def collect_dart_disclosures(
         self,
         days_back: int = 30,
-        insert_to_db: bool = False
+        insert_to_db: bool = False,
+        max_items: Optional[int] = None
     ) -> List[Dict[str, any]]:
         """
         Collect ETF disclosure documents from DART
@@ -119,6 +142,7 @@ class ETFDataCollector:
         Args:
             days_back: Number of days to look back
             insert_to_db: Whether to insert into vector DB
+            max_items: Maximum number of documents to collect
         
         Returns:
             List of formatted disclosure data
@@ -127,6 +151,11 @@ class ETFDataCollector:
         
         # Crawl disclosures
         disclosures = self.dart_crawler.get_etf_prospectus_list(days_back=days_back)
+        
+        # Apply max_items limit if specified
+        if max_items is not None and len(disclosures) > max_items:
+            logger.info(f"Limiting DART disclosures from {len(disclosures)} to {max_items}")
+            disclosures = disclosures[:max_items]
         
         # Format for vector DB
         formatted_disclosures = []
@@ -146,8 +175,12 @@ class ETFDataCollector:
         self,
         domestic_max: Optional[int] = None,
         foreign_tickers: Optional[List[str]] = None,
+        foreign_max: Optional[int] = None,
         dart_days: int = 30,
-        insert_to_db: bool = True
+        dart_max: Optional[int] = None,
+        insert_to_db: bool = True,
+        only_outdated: bool = True,
+        days_threshold: int = 7
     ) -> Dict[str, any]:
         """
         Collect all ETF data from all sources
@@ -155,13 +188,20 @@ class ETFDataCollector:
         Args:
             domestic_max: Max domestic ETFs
             foreign_tickers: Foreign ETF tickers
+            foreign_max: Max foreign ETFs
             dart_days: DART lookback days
+            dart_max: Max DART documents
             insert_to_db: Whether to insert into vector DB
+            only_outdated: Only collect ETFs not updated in last N days
+            days_threshold: Number of days for outdated check
         
         Returns:
             Summary dict with counts
         """
         logger.info("=== Starting full ETF data collection ===")
+        
+        if only_outdated:
+            logger.info(f"📅 Only collecting ETFs older than {days_threshold} days")
         
         results = {
             "domestic": [],
@@ -175,7 +215,9 @@ class ETFDataCollector:
         try:
             domestic = self.collect_domestic_etfs(
                 max_items=domestic_max,
-                insert_to_db=insert_to_db
+                insert_to_db=insert_to_db,
+                only_outdated=only_outdated,
+                days_threshold=days_threshold
             )
             results["domestic"] = domestic
         except Exception as e:
@@ -185,7 +227,8 @@ class ETFDataCollector:
         try:
             foreign = self.collect_foreign_etfs(
                 tickers=foreign_tickers,
-                insert_to_db=insert_to_db
+                insert_to_db=insert_to_db,
+                max_items=foreign_max
             )
             results["foreign"] = foreign
         except Exception as e:
@@ -195,7 +238,8 @@ class ETFDataCollector:
         try:
             dart = self.collect_dart_disclosures(
                 days_back=dart_days,
-                insert_to_db=insert_to_db
+                insert_to_db=insert_to_db,
+                max_items=dart_max
             )
             results["dart"] = dart
         except Exception as e:
