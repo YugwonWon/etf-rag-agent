@@ -177,6 +177,7 @@ async def query_etf(request: QuestionRequest):
     Ask a question about ETFs
     
     Returns answer with sources and references
+    Note: Render free plan has 30s timeout limit
     """
     try:
         logger.info(f"Query: {request.question}")
@@ -189,16 +190,29 @@ async def query_etf(request: QuestionRequest):
         if request.etf_type:
             filters["etf_type"] = request.etf_type
         
-        # Query
-        response = handler.query(
-            question=request.question,
-            top_k=request.top_k,
-            filters=filters if filters else None,
-            temperature=request.temperature
-        )
-        
-        return response
+        # Query with timeout handling
+        import asyncio
+        try:
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    handler.query,
+                    question=request.question,
+                    top_k=request.top_k,
+                    filters=filters if filters else None,
+                    temperature=request.temperature
+                ),
+                timeout=28.0  # Render 타임아웃(30s)보다 짧게 설정
+            )
+            return response
+        except asyncio.TimeoutError:
+            logger.error("Query timeout exceeded (28s)")
+            raise HTTPException(
+                status_code=504,
+                detail="요청 처리 시간이 초과되었습니다. 더 짧은 질문을 시도해보세요."
+            )
     
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in query endpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))

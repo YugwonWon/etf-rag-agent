@@ -24,12 +24,13 @@ class OpenAIModel:
         self.api_key = api_key or settings.openai_api_key
         self.model = model or settings.openai_model
         self.embedding_model = settings.openai_embedding_model
+        self.timeout = settings.openai_timeout  # 타임아웃 설정 추가
         
         if not self.api_key:
             raise ValueError("OpenAI API key is required")
         
-        self.client = OpenAI(api_key=self.api_key)
-        logger.info(f"OpenAI Model initialized: {self.model}")
+        self.client = OpenAI(api_key=self.api_key, timeout=self.timeout)
+        logger.info(f"OpenAI Model initialized: {self.model} (timeout: {self.timeout}s)")
     
     def generate(
         self,

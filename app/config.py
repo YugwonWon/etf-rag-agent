@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
     openai_model: str = Field(default="gpt-4-turbo-preview", env="OPENAI_MODEL")
     openai_embedding_model: str = Field(default="text-embedding-3-small", env="OPENAI_EMBEDDING_MODEL")
+    openai_timeout: int = Field(default=25, env="OPENAI_TIMEOUT")  # API 호출 타임아웃 (초)
     
     # Local LLM
     local_model_path: Optional[str] = Field(default=None, env="LOCAL_MODEL_PATH")

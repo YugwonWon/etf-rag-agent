@@ -139,6 +139,49 @@ def get_stats() -> str:
         return f"❌ 통계 조회 중 오류: {str(e)}"
 
 
+def trigger_collection() -> str:
+    """데이터 수집 수동 트리거"""
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/api/collection/trigger",
+            json={},
+            timeout=300  # 5분 타임아웃
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            status = data.get("status", "unknown")
+            message = data.get("message", "")
+            
+            result_text = "✅ **데이터 수집 완료**\n\n"
+            result_text += f"- 상태: {status}\n"
+            result_text += f"- 메시지: {message}\n"
+            
+            stats = data.get("stats", {})
+            if stats:
+                result_text += f"\n📊 **수집 결과**:\n"
+                result_text += f"- 총 문서 수: {stats.get('total_documents', 0):,}개\n"
+                
+                sources = stats.get("sources", {})
+                if sources:
+                    result_text += f"\n**소스별 문서 수**:\n"
+                    for source, count in sources.items():
+                        result_text += f"- {source}: {count}개\n"
+            
+            return result_text
+        elif response.status_code == 202:
+            return "⏳ **수집 작업 시작됨**\n\n백그라운드에서 데이터를 수집하고 있습니다.\n잠시 후 통계를 다시 확인해주세요."
+        else:
+            return f"⚠️ 데이터 수집 실패 (상태 코드: {response.status_code})\n\n{response.text}"
+    
+    except requests.exceptions.Timeout:
+        return "⏱️ **요청 시간 초과**\n\n데이터 수집이 진행 중일 수 있습니다.\n5분 후 통계를 확인해주세요."
+    except requests.exceptions.ConnectionError:
+        return f"❌ **서버 연결 실패**\n\n- API URL: {API_BASE_URL}\n- 서버가 실행 중인지 확인해주세요."
+    except Exception as e:
+        return f"❌ **오류 발생**\n\n{str(e)}"
+
+
 def create_examples() -> List[List[str]]:
     """예시 질문 목록"""
     return [
@@ -236,9 +279,24 @@ with gr.Blocks(css=custom_css, title="ETF RAG Agent", theme=gr.themes.Soft()) as
                     with gr.Row():
                         status_btn = gr.Button("🔄 서버 상태 확인", variant="primary")
                         stats_btn = gr.Button("📈 통계 조회", variant="primary")
+                        collection_btn = gr.Button("🚀 데이터 수집 실행", variant="stop")
                     
                     status_output = gr.Markdown(label="서버 상태")
                     stats_output = gr.Markdown(label="통계 정보")
+                    
+                    gr.Markdown("---")
+                    gr.Markdown("### 📦 데이터 수집 조회")
+                    collection_output = gr.Markdown(label="수집 결과")
+                    
+                    gr.Markdown(
+                        """
+                        **⚠️ 주의사항**:
+                        - 데이터 수집은 2-5분 정도 소요됩니다
+                        - 수집 중에는 다른 작업이 지연될 수 있습니다
+                        - 테스트 모드에서는 각 소스당 최대 10개씩만 수집합니다
+                        - 최근 7일 이내 업데이트된 ETF는 건너뜁니다
+                        """
+                    )
                     
                     status_btn.click(
                         check_server_status,
@@ -247,6 +305,10 @@ with gr.Blocks(css=custom_css, title="ETF RAG Agent", theme=gr.themes.Soft()) as
                     stats_btn.click(
                         get_stats,
                         outputs=stats_output
+                    )
+                    collection_btn.click(
+                        trigger_collection,
+                        outputs=collection_output
                     )
                     
                     # 초기 로드 시 자동 확인
