@@ -255,36 +255,75 @@ async def trigger_collection(
     """
     try:
         def run_collection():
-            """Background task for collection"""
-            logger.info("Background collection started")
+            """Background task for collection with timeout protection"""
+            import signal
             
-            coll = get_collector()
+            def timeout_handler(signum, frame):
+                raise TimeoutError("Collection timeout exceeded")
             
-            results = {
-                "domestic": [],
-                "foreign": [],
-                "dart": []
-            }
-            
-            if request.domestic:
-                results["domestic"] = coll.collect_domestic_etfs(
-                    max_items=request.domestic_max,
-                    insert_to_db=True
-                )
-            
-            if request.foreign:
-                results["foreign"] = coll.collect_foreign_etfs(
-                    insert_to_db=True
-                )
-            
-            if request.dart:
-                results["dart"] = coll.collect_dart_disclosures(
-                    insert_to_db=True
-                )
-            
-            total = len(results["domestic"]) + len(results["foreign"]) + len(results["dart"])
-            
-            logger.info(f"Background collection completed: {total} items")
+            try:
+                logger.info("Background collection started")
+                
+                # Set alarm for 5 minutes total timeout (only works on Unix)
+                try:
+                    signal.signal(signal.SIGALRM, timeout_handler)
+                    signal.alarm(300)  # 5 minutes
+                except AttributeError:
+                    # Windows doesn't support SIGALRM
+                    logger.warning("Timeout protection not available on this platform")
+                
+                coll = get_collector()
+                
+                results = {
+                    "domestic": [],
+                    "foreign": [],
+                    "dart": []
+                }
+                
+                if request.domestic:
+                    try:
+                        logger.info(f"Starting domestic ETF collection (max: {request.domestic_max})...")
+                        results["domestic"] = coll.collect_domestic_etfs(
+                            max_items=request.domestic_max,
+                            insert_to_db=True
+                        )
+                        logger.info(f"Domestic collection completed: {len(results['domestic'])} items")
+                    except Exception as e:
+                        logger.error(f"Domestic collection failed: {e}")
+                
+                if request.foreign:
+                    try:
+                        logger.info("Starting foreign ETF collection...")
+                        results["foreign"] = coll.collect_foreign_etfs(
+                            insert_to_db=True
+                        )
+                        logger.info(f"Foreign collection completed: {len(results['foreign'])} items")
+                    except Exception as e:
+                        logger.error(f"Foreign collection failed: {e}")
+                
+                if request.dart:
+                    try:
+                        logger.info("Starting DART disclosure collection...")
+                        results["dart"] = coll.collect_dart_disclosures(
+                            insert_to_db=True
+                        )
+                        logger.info(f"DART collection completed: {len(results['dart'])} items")
+                    except Exception as e:
+                        logger.error(f"DART collection failed: {e}")
+                
+                total = len(results["domestic"]) + len(results["foreign"]) + len(results["dart"])
+                
+                logger.info(f"Background collection completed: {total} items")
+                
+            except TimeoutError:
+                logger.error("Collection timeout after 5 minutes - stopping gracefully")
+            except Exception as e:
+                logger.error(f"Collection error: {e}")
+            finally:
+                try:
+                    signal.alarm(0)  # Cancel alarm
+                except:
+                    pass
         
         # Add to background tasks
         background_tasks.add_task(run_collection)
@@ -332,6 +371,15 @@ async def get_collection_status():
     except Exception as e:
         logger.error(f"Error getting collection status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/stats", tags=["Statistics"])
+async def get_statistics():
+    """
+    Get system statistics and data collection info
+    Alias for /api/collection/status for backward compatibility
+    """
+    return await get_collection_status()
 
 
 @app.get("/api/health", response_model=HealthResponse, tags=["General"])

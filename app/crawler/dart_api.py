@@ -66,7 +66,8 @@ class DARTCrawler:
             url = f"{self.base_url}/{endpoint}"
             params["crtfc_key"] = self.api_key
             
-            response = requests.get(url, params=params)
+            # Add timeout to prevent hanging
+            response = requests.get(url, params=params, timeout=(10, 30))
             response.raise_for_status()
             
             data = response.json()

@@ -36,7 +36,12 @@ class NaverETFCrawler:
         try:
             logger.info("Fetching ETF list from Naver Finance API...")
             
-            response = requests.get(self.etf_list_url, headers=self.headers)
+            # Add timeout to prevent hanging (10s connect, 30s read)
+            response = requests.get(
+                self.etf_list_url, 
+                headers=self.headers,
+                timeout=(10, 30)
+            )
             response.raise_for_status()
             
             data = response.json()
@@ -102,7 +107,8 @@ class NaverETFCrawler:
             url = f"{self.base_url}/item/main.naver?code={code}"
             logger.debug(f"Fetching detail for {code}")
             
-            response = requests.get(url, headers=self.headers)
+            # Add timeout to prevent hanging
+            response = requests.get(url, headers=self.headers, timeout=(10, 30))
             response.raise_for_status()
             
             soup = BeautifulSoup(response.text, 'html.parser')
