@@ -95,7 +95,7 @@ class CollectionRequest(BaseModel):
     domestic: bool = Field(True, description="Collect domestic ETFs")
     foreign: bool = Field(True, description="Collect foreign ETFs")
     dart: bool = Field(True, description="Collect DART disclosures")
-    domestic_max: Optional[int] = Field(None, description="Max domestic ETFs to collect")
+    domestic_max: Optional[int] = Field(10, description="Max domestic ETFs to collect (default: 10)")
 
 
 class CollectionResponse(BaseModel):
@@ -406,10 +406,42 @@ async def get_collection_status():
 @app.get("/api/stats", tags=["Statistics"])
 async def get_statistics():
     """
-    Get system statistics and data collection info
-    Alias for /api/collection/status for backward compatibility
+    Get comprehensive system statistics and data collection info
     """
-    return await get_collection_status()
+    try:
+        # Get collection status
+        collection_status = await get_collection_status()
+        
+        # Add system information
+        stats = {
+            **collection_status,
+            "vector_db": "Weaviate Cloud",
+            "llm_model": f"{settings.llm_provider}/{settings.openai_model}" if settings.llm_provider == "openai" else "local/qwen2.5:3b",
+            "embedding_model": settings.openai_embedding_model if settings.llm_provider == "openai" else "all-MiniLM-L6-v2",
+            "environment": settings.environment,
+            "scheduler_enabled": settings.enable_scheduler
+        }
+        
+        # Add source breakdown if documents exist
+        if stats.get("total_documents", 0) > 0:
+            try:
+                handler = get_vector_handler()
+                # Get source distribution
+                # Note: This requires querying Weaviate to get source counts
+                # For now, we'll use the metadata counts
+                stats["sources"] = {
+                    "naver": collection_status.get("etf_count", {}).get("domestic", 0),
+                    "yfinance": collection_status.get("etf_count", {}).get("foreign", 0),
+                    "dart": 0  # TODO: Add DART count to metadata
+                }
+            except Exception as e:
+                logger.warning(f"Could not get source breakdown: {e}")
+        
+        return stats
+    
+    except Exception as e:
+        logger.error(f"Error getting statistics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/health", response_model=HealthResponse, tags=["General"])
