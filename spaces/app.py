@@ -9,8 +9,8 @@ import requests
 from typing import List, Tuple
 
 # API 서버 설정
-# Render 배포 URL로 변경 필요!
-API_BASE_URL = os.getenv("API_BASE_URL", "https://etf-rag-agent-626454909861.asia-northeast3.run.app")  # 로컬 기본값
+# Google Cloud Run 배포 URL
+API_BASE_URL = os.getenv("API_BASE_URL", "https://etf-rag-agent-626454909861.asia-northeast3.run.app")
 
 # 스타일링을 위한 CSS
 custom_css = """
@@ -101,7 +101,7 @@ def query_etf(message: str, history: List[Tuple[str, str]], top_k: int = 3) -> T
 def check_server_status() -> str:
     """서버 상태 확인"""
     try:
-        response = requests.get(f"{API_BASE_URL}/api/health", timeout=5)
+        response = requests.get(f"{API_BASE_URL}/api/health", timeout=60)
         if response.status_code == 200:
             data = response.json()
             return f"✅ 서버 정상 작동 중\n\n- 상태: {data.get('status', 'OK')}\n- 시간: {data.get('timestamp', 'N/A')}"
@@ -116,7 +116,7 @@ def check_server_status() -> str:
 def get_stats() -> str:
     """통계 정보 조회"""
     try:
-        response = requests.get(f"{API_BASE_URL}/api/stats", timeout=10)
+        response = requests.get(f"{API_BASE_URL}/api/stats", timeout=60)
         if response.status_code == 200:
             data = response.json()
             
@@ -196,12 +196,14 @@ def create_examples() -> List[List[str]]:
 # Gradio UI 구성
 with gr.Blocks(css=custom_css, title="ETF RAG Agent", theme=gr.themes.Soft()) as demo:
     gr.Markdown(
-        """
+        f"""
         # 🤖 ETF RAG Agent
         
         **장기투자를 위한 국내외 ETF 정보 AI 어시스턴트**
         
         국내 ETF (네이버, DART)와 해외 ETF (yfinance) 정보를 기반으로 질문에 답변합니다.
+        
+        **🔗 API 서버**: `{API_BASE_URL}`
         """
     )
     

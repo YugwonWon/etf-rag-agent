@@ -85,7 +85,8 @@ class RAGQueryHandler:
                     "answer": "죄송합니다. 질문과 관련된 ETF 정보를 찾을 수 없습니다.",
                     "sources": [],
                     "num_sources": 0,
-                    "model_type": self.model_type
+                    "model_type": self.model_type,
+                    "question": question
                 }
             
             logger.info(f"Retrieved {len(results)} relevant documents")

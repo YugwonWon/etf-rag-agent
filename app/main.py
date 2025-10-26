@@ -305,22 +305,9 @@ async def trigger_collection(
     """
     try:
         def run_collection():
-            """Background task for collection with timeout protection"""
-            import signal
-            
-            def timeout_handler(signum, frame):
-                raise TimeoutError("Collection timeout exceeded")
-            
+            """Background task for collection - simplified without signal"""
             try:
                 logger.info("Background collection started")
-                
-                # Set alarm for 5 minutes total timeout (only works on Unix)
-                try:
-                    signal.signal(signal.SIGALRM, timeout_handler)
-                    signal.alarm(300)  # 5 minutes
-                except AttributeError:
-                    # Windows doesn't support SIGALRM
-                    logger.warning("Timeout protection not available on this platform")
                 
                 coll = get_collector()
                 
@@ -365,15 +352,8 @@ async def trigger_collection(
                 
                 logger.info(f"Background collection completed: {total} items")
                 
-            except TimeoutError:
-                logger.error("Collection timeout after 5 minutes - stopping gracefully")
             except Exception as e:
                 logger.error(f"Collection error: {e}")
-            finally:
-                try:
-                    signal.alarm(0)  # Cancel alarm
-                except:
-                    pass
         
         # Add to background tasks
         background_tasks.add_task(run_collection)
