@@ -28,7 +28,7 @@ short_description: 장기투자를 위한 국내외 ETF 정보 AI 어시스턴�
 ## 기술 스택
 
 - Vector DB: Weaviate
-- LLM: Ollama (qwen2.5:3b)
+- LLM: gpt-3.5-turbo or Ollama (qwen2.5:3b)
 - Embedding: sentence-transformers
 - Framework: FastAPI + Gradio
 
