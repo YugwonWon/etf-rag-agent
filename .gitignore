@@ -28,6 +28,13 @@ MANIFEST
 
 # Virtual Environment
 venv/
+
+# Google Cloud credentials (NEVER COMMIT!)
+gcp-key.json
+gcp-key.json.*
+*.json.backup.*
+.gcloud/
+service-account-key.json
 ENV/
 env/
 .venv

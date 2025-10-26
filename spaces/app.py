@@ -10,7 +10,7 @@ from typing import List, Tuple
 
 # API 서버 설정
 # Render 배포 URL로 변경 필요!
-API_BASE_URL = os.getenv("API_BASE_URL", "https://etf-rag-agent.onrender.com")  # 로컬 기본값
+API_BASE_URL = os.getenv("API_BASE_URL", "https://etf-rag-agent-626454909861.asia-northeast3.run.app")  # 로컬 기본값
 
 # 스타일링을 위한 CSS
 custom_css = """
