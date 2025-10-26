@@ -476,6 +476,40 @@ class WeaviateHandler:
             logger.error(f"Error getting ETF codes needing update: {e}")
             return []
     
+    def get_source_counts(self) -> Dict[str, int]:
+        """
+        Get document count by source
+        
+        Returns:
+            Dictionary mapping source to document count
+        """
+        try:
+            sources = ["naver", "yfinance", "dart"]
+            counts = {}
+            
+            for source in sources:
+                result = (
+                    self.client.query
+                    .aggregate(self.class_name)
+                    .with_where({
+                        "path": ["source"],
+                        "operator": "Equal",
+                        "valueString": source
+                    })
+                    .with_meta_count()
+                    .do()
+                )
+                
+                count = result.get("data", {}).get("Aggregate", {}).get(self.class_name, [{}])[0].get("meta", {}).get("count", 0)
+                counts[source] = count
+                logger.debug(f"Source '{source}': {count} documents")
+            
+            return counts
+            
+        except Exception as e:
+            logger.error(f"Error getting source counts: {e}")
+            return {}
+    
     def close(self):
         """Close Weaviate connection"""
         try:

@@ -342,8 +342,8 @@ with gr.Blocks(css=custom_css, title="ETF RAG Agent", theme=gr.themes.Soft()) as
                 ### 🔧 기술 스택
                 
                 - **Vector DB**: Weaviate
-                - **LLM**: Ollama (qwen2.5:3b) / OpenAI GPT-4
-                - **Embedding**: sentence-transformers (all-MiniLM-L6-v2)
+                - **LLM**: OpenAI GPT-3.5-turbo / Ollama (qwen2.5:3b)-local env
+                - **Embedding**: text-embedding-3-small (OpenAI) / sentence-transformers (all-MiniLM-L6-v2)-local env
                 - **Framework**: FastAPI + Gradio
                 - **데이터**: 네이버 금융, DART, yfinance
                 

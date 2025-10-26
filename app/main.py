@@ -426,16 +426,12 @@ async def get_statistics():
         if stats.get("total_documents", 0) > 0:
             try:
                 handler = get_vector_handler()
-                # Get source distribution
-                # Note: This requires querying Weaviate to get source counts
-                # For now, we'll use the metadata counts
-                stats["sources"] = {
-                    "naver": collection_status.get("etf_count", {}).get("domestic", 0),
-                    "yfinance": collection_status.get("etf_count", {}).get("foreign", 0),
-                    "dart": 0  # TODO: Add DART count to metadata
-                }
+                # Get actual source distribution from Weaviate
+                source_counts = handler.get_source_counts()
+                stats["sources"] = source_counts
             except Exception as e:
                 logger.warning(f"Could not get source breakdown: {e}")
+                stats["sources"] = {}
         
         return stats
     
