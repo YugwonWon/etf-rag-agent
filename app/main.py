@@ -95,7 +95,9 @@ class CollectionRequest(BaseModel):
     domestic: bool = Field(True, description="Collect domestic ETFs")
     foreign: bool = Field(True, description="Collect foreign ETFs")
     dart: bool = Field(True, description="Collect DART disclosures")
-    domestic_max: Optional[int] = Field(10, description="Max domestic ETFs to collect (default: 10)")
+    domestic_max: Optional[int] = Field(None, description="Max domestic ETFs to collect (default: None = no limit)")
+    foreign_max: Optional[int] = Field(None, description="Max foreign ETFs to collect (default: None = no limit)")
+    dart_max: Optional[int] = Field(None, description="Max DART docs to collect (default: None = no limit)")
 
 
 class CollectionResponse(BaseModel):
@@ -319,7 +321,7 @@ async def trigger_collection(
                 
                 if request.domestic:
                     try:
-                        logger.info(f"Starting domestic ETF collection (max: {request.domestic_max})...")
+                        logger.info(f"Starting domestic ETF collection (max: {request.domestic_max or 'unlimited'})...")
                         results["domestic"] = coll.collect_domestic_etfs(
                             max_items=request.domestic_max,
                             insert_to_db=True
@@ -330,9 +332,10 @@ async def trigger_collection(
                 
                 if request.foreign:
                     try:
-                        logger.info("Starting foreign ETF collection...")
+                        logger.info(f"Starting foreign ETF collection (max: {request.foreign_max or 'unlimited'})...")
                         results["foreign"] = coll.collect_foreign_etfs(
-                            insert_to_db=True
+                            insert_to_db=True,
+                            max_items=request.foreign_max
                         )
                         logger.info(f"Foreign collection completed: {len(results['foreign'])} items")
                     except Exception as e:
@@ -340,9 +343,10 @@ async def trigger_collection(
                 
                 if request.dart:
                     try:
-                        logger.info("Starting DART disclosure collection...")
+                        logger.info(f"Starting DART disclosure collection (max: {request.dart_max or 'unlimited'})...")
                         results["dart"] = coll.collect_dart_disclosures(
-                            insert_to_db=True
+                            insert_to_db=True,
+                            max_items=request.dart_max
                         )
                         logger.info(f"DART collection completed: {len(results['dart'])} items")
                     except Exception as e:
