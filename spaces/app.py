@@ -29,22 +29,6 @@ footer {
 }
 """
 
-# JavaScript: Enter키로 전송, Shift+Enter로 줄바꿈
-custom_js = """
-function() {
-    const textbox = document.querySelector('textarea[data-testid="textbox"]');
-    if (textbox) {
-        textbox.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                const submitBtn = document.querySelector('button[variant="primary"]');
-                if (submitBtn) submitBtn.click();
-            }
-        });
-    }
-}
-"""
-
 
 def format_sources(sources: List[dict]) -> str:
     """참고 문서 포맷팅"""
@@ -213,7 +197,7 @@ def create_examples() -> List[List[str]]:
 
 
 # Gradio UI 구성
-with gr.Blocks(css=custom_css, js=custom_js, title="ETF RAG Agent", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(css=custom_css, title="ETF RAG Agent", theme=gr.themes.Soft()) as demo:
     gr.Markdown(
         f"""
         # 🤖 ETF RAG Agent
@@ -223,7 +207,7 @@ with gr.Blocks(css=custom_css, js=custom_js, title="ETF RAG Agent", theme=gr.the
         국내 ETF (네이버, DART)와 해외 ETF (yfinance) 정보를 기반으로 질문에 답변합니다.
         
         **API 서버**: `{API_BASE_URL}`\n
-        **Cold Start**: 최초 요청 시 20-30초 지연될 수 있습니다.
+        **Cold Start**: 최초 요청 시 응답이 지연(20-30초 정도)될 수 있습니다.
         """
     )
     
