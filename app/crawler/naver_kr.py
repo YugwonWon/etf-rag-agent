@@ -117,6 +117,14 @@ class NaverETFCrawler:
             summary = soup.find("div", class_="wrap_company")
             name = summary.find("h2").text.strip() if summary and summary.find("h2") else "Unknown"
             
+            # Extract current price
+            price_elem = soup.find("p", class_="no_today")
+            if price_elem:
+                price_span = price_elem.find("span", class_="blind")
+                price = price_span.text.strip().replace(',', '') if price_span else "N/A"
+            else:
+                price = "N/A"
+            
             # Extract description
             description_div = soup.find("div", class_="description")
             description = description_div.text.strip() if description_div else ""
@@ -143,6 +151,7 @@ class NaverETFCrawler:
             detail = {
                 "code": code,
                 "name": name,
+                "price": price,
                 "description": description,
                 "nav": nav,
                 "info": info_dict,
@@ -213,21 +222,31 @@ class NaverETFCrawler:
         Returns:
             Formatted dict ready for vector DB
         """
+        # Get info table data
+        info = etf_detail.get('info', {})
+        
+        # NAV 찾기: info 테이블에서 'NAV'로 시작하는 키 찾기
+        nav_value = etf_detail.get('nav', 'N/A')
+        for key, value in info.items():
+            if key.startswith('NAV'):
+                nav_value = value
+                break
+        
         # Create rich text content
         content_parts = [
             f"ETF 이름: {etf_detail.get('name', 'N/A')}",
             f"ETF 코드: {etf_detail.get('code', 'N/A')}",
             f"현재가: {etf_detail.get('price', 'N/A')}원",
-            f"NAV: {etf_detail.get('nav', 'N/A')}",
+            f"NAV: {nav_value}원",
             f"\n설명: {etf_detail.get('description', 'N/A')}",
         ]
         
-        # Add info table data
-        info = etf_detail.get('info', {})
+        # Add info table data (NAV 제외)
         if info:
             content_parts.append("\n상세 정보:")
             for key, value in info.items():
-                content_parts.append(f"- {key}: {value}")
+                if not key.startswith('NAV'):  # NAV는 이미 위에 표시
+                    content_parts.append(f"- {key}: {value}")
         
         content = "\n".join(content_parts)
         
@@ -240,7 +259,7 @@ class NaverETFCrawler:
             "category": info.get("분류", ""),
             "metadata": {
                 "price": etf_detail.get("price"),
-                "nav": etf_detail.get("nav"),
+                "nav": nav_value,  # 개선된 NAV 값 사용
                 "description": etf_detail.get("description", ""),
                 **info
             }
