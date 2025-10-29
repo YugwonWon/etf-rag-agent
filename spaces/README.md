@@ -4,7 +4,7 @@ emoji: 🤖
 colorFrom: blue
 colorTo: green
 sdk: gradio
-sdk_version: 4.44.0
+sdk_version: 5.6.0
 app_file: app.py
 pinned: false
 license: mit
@@ -19,17 +19,17 @@ short_description: 장기투자를 위한 국내외 ETF 정보 AI 어시스턴�
 
 ## 주요 기능
 
-- 💬 자연어로 ETF 정보 질의
-- 📊 국내 ETF (네이버, DART) 정보
-- 🌎 해외 ETF (yfinance) 정보
-- 🤖 AI 기반 답변 생성
-- 📚 출처 제공
+- 자연어로 ETF 정보 질의
+- 국내 ETF (네이버, DART) 정보
+- 해외 ETF (yfinance) 정보
+- AI 기반 답변 생성
+- 출처 제공
 
 ## 기술 스택
 
 - Vector DB: Weaviate
-- LLM: gpt-3.5-turbo or Ollama (qwen2.5:3b)
-- Embedding: sentence-transformers
+- LLM: gpt-3.5-turbo / Ollama (qwen2.5:3b)
+- Embedding: text-embedding-3-small / sentence-transformers
 - Framework: FastAPI + Gradio
 
 ## 면책 조항
