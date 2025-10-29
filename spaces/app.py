@@ -14,6 +14,9 @@ API_BASE_URL = os.getenv("API_BASE_URL", "https://etf-rag-agent-626454909861.asi
 
 # 스타일링을 위한 CSS
 custom_css = """
+* {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
 .chatbot {
     height: 600px !important;
 }
@@ -23,6 +26,22 @@ custom_css = """
 }
 footer {
     display: none !important;
+}
+"""
+
+# JavaScript: Enter키로 전송, Shift+Enter로 줄바꿈
+custom_js = """
+function() {
+    const textbox = document.querySelector('textarea[data-testid="textbox"]');
+    if (textbox) {
+        textbox.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const submitBtn = document.querySelector('button[variant="primary"]');
+                if (submitBtn) submitBtn.click();
+            }
+        });
+    }
 }
 """
 
@@ -194,7 +213,7 @@ def create_examples() -> List[List[str]]:
 
 
 # Gradio UI 구성
-with gr.Blocks(css=custom_css, title="ETF RAG Agent", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(css=custom_css, js=custom_js, title="ETF RAG Agent", theme=gr.themes.Soft()) as demo:
     gr.Markdown(
         f"""
         # 🤖 ETF RAG Agent
@@ -203,7 +222,8 @@ with gr.Blocks(css=custom_css, title="ETF RAG Agent", theme=gr.themes.Soft()) as
         
         국내 ETF (네이버, DART)와 해외 ETF (yfinance) 정보를 기반으로 질문에 답변합니다.
         
-        **🔗 API 서버**: `{API_BASE_URL}`
+        **API 서버**: `{API_BASE_URL}`\n
+        **Cold Start**: 최초 요청 시 20-30초 지연될 수 있습니다.
         """
     )
     
@@ -223,8 +243,9 @@ with gr.Blocks(css=custom_css, title="ETF RAG Agent", theme=gr.themes.Soft()) as
                     with gr.Row():
                         msg = gr.Textbox(
                             label="질문을 입력하세요",
-                            placeholder="예: KODEX 200 ETF에 대해 설명해줘",
-                            lines=2,
+                            placeholder="예: 미국 S&P 500 ETF 추천해 줘.",
+                            lines=1,
+                            max_lines=1,
                             scale=5
                         )
                         submit_btn = gr.Button("전송", variant="primary", scale=1)
