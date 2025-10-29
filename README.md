@@ -25,6 +25,12 @@
 
 ---
 
+## 🌐 온라인 데모
+
+🔗 **Hugging Face Spaces**: [https://huggingface.co/spaces/Yugwon/etf-rag-agent](https://huggingface.co/spaces/Yugwon/etf-rag-agent)
+
+---
+
 ## ✨ 주요 기능
 
 ### 🎯 핵심 기능
