@@ -190,7 +190,7 @@ def main():
         }
         
         # Collect based on mode
-        if "domestic" in collection_mode or not (args.domestic_only or args.foreign_only or args.dart_only):
+        if "domestic" in collection_mode:
             logger.info("🇰🇷 Starting domestic ETF collection...")
             try:
                 domestic = collector.collect_domestic_etfs(
@@ -204,7 +204,7 @@ def main():
             except Exception as e:
                 logger.error(f"✗ Domestic collection error: {e}")
         
-        if "foreign" in collection_mode or not (args.domestic_only or args.foreign_only or args.dart_only):
+        if "foreign" in collection_mode:
             logger.info("🇺🇸 Starting foreign ETF collection...")
             try:
                 # Determine which tickers to use
@@ -386,7 +386,7 @@ def main():
             except Exception as e:
                 logger.error(f"✗ Foreign collection error: {e}")
         
-        if "DART" in collection_mode or not (args.domestic_only or args.foreign_only or args.dart_only):
+        if "DART" in collection_mode:
             logger.info("📄 Starting DART disclosure collection...")
             try:
                 dart = collector.collect_dart_disclosures(
