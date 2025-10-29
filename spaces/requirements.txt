@@ -1,6 +1,6 @@
 # Gradio UI만 필요한 최소한의 의존성
-# Updated: 2025-10-29 - Upgraded to Gradio 5.x for huggingface_hub compatibility
-gradio==5.6.0
-huggingface-hub>=0.24.0  # Gradio 5.x 호환 버전
+# Updated: 2025-10-29 - Use latest stable Gradio (5.49.1)
+gradio==5.49.1
+huggingface-hub>=0.24.0
 requests>=2.31.0
 python-dotenv>=1.0.0
