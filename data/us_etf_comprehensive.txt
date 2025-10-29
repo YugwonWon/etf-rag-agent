@@ -1,0 +1,701 @@
+# US ETF Tickers - COMPREHENSIVE List (~500+ ETFs)
+# 미국 거래소에서 거래되는 대부분의 주요 ETF
+# 주의: 이 파일을 사용하면 수집에 매우 오랜 시간이 걸립니다 (3-5시간)
+# 사용법: python collect_all_data.py --foreign-tickers-file data/us_etf_comprehensive.txt
+
+# ========================================
+# BROAD MARKET INDEX ETFs
+# ========================================
+
+# S&P 500
+SPY
+VOO
+IVV
+SPLG
+SPYG
+SPYV
+RSP
+SPXL
+UPRO
+SH
+SDS
+SPXU
+
+# Nasdaq
+QQQ
+QQQM
+QQEW
+QQQJ
+QLD
+TQQQ
+PSQ
+QID
+SQQQ
+ONEQ
+
+# Russell 2000 (Small Cap)
+IWM
+VTWO
+IJR
+SCHA
+IWN
+IWO
+VTWG
+VTWV
+UWM
+TNA
+RWM
+TWM
+TZA
+
+# Dow Jones
+DIA
+UDOW
+DDM
+SDOW
+DOG
+DXD
+
+# Total Market
+VTI
+ITOT
+SPTM
+SCHB
+THRM
+
+# Mid Cap
+IJH
+MDY
+VO
+IVOO
+IVOG
+IVOV
+MVV
+MZZ
+
+# Large Cap
+VV
+OEF
+SCHX
+ILCB
+SPYG
+SPYV
+
+# ========================================
+# SECTOR ETFs
+# ========================================
+
+# Technology
+XLK
+VGT
+FTEC
+IYW
+IGV
+SOXX
+SMH
+XSD
+QTEC
+IPAY
+FINX
+HACK
+CIBR
+BUG
+SKYY
+CLOU
+WFH
+WCLD
+
+# Semiconductors
+SOXX
+SMH
+XSD
+SOXL
+SOXS
+USD
+PSI
+
+# Software
+IGV
+WCLD
+SKYY
+CLOU
+
+# Financial
+XLF
+VFH
+KBWB
+KBE
+KRE
+IAT
+IYF
+FAS
+FAZ
+
+# Healthcare
+XLV
+VHT
+IYH
+IBB
+XBI
+IHI
+FBT
+ARKG
+LABU
+LABD
+
+# Consumer Discretionary
+XLY
+VCR
+FDIS
+IYC
+RTH
+XRT
+PEJ
+
+# Consumer Staples
+XLP
+VDC
+FSTA
+IYK
+KXI
+
+# Energy
+XLE
+VDE
+IYE
+XOP
+OIH
+FENY
+IEO
+FCG
+AMLP
+ERX
+ERY
+
+# Clean Energy
+ICLN
+TAN
+PBW
+QCLN
+ACES
+LIT
+BATT
+HAIL
+
+# Materials
+XLB
+VAW
+IYM
+XME
+PICK
+COPX
+SLX
+
+# Industrials
+XLI
+VIS
+IYJ
+FIDU
+IYT
+XAR
+PPA
+
+# Utilities
+XLU
+VPU
+IDU
+FUTY
+
+# Real Estate
+XLRE
+VNQ
+IYR
+SCHH
+RWR
+USRT
+REM
+MORT
+
+# Communication Services
+XLC
+VOX
+IYZ
+FCOM
+
+# ========================================
+# INTERNATIONAL ETFs
+# ========================================
+
+# Developed Markets
+EFA
+VEA
+IEFA
+SCHF
+IXUS
+VEU
+ACWI
+ACWX
+VXUS
+IDEV
+URTH
+
+# Europe
+VGK
+EZU
+FEZ
+HEDJ
+EURL
+IEV
+DFE
+DBEU
+
+# Asia Pacific
+AAXJ
+VPL
+EPP
+GMF
+
+# China
+FXI
+MCHI
+ASHR
+KWEB
+CQQQ
+GXC
+YINN
+YANG
+
+# Japan
+EWJ
+DXJ
+DBJP
+HEWJ
+
+# India
+INDA
+EPI
+INDY
+PIN
+SMIN
+
+# Emerging Markets
+EEM
+VWO
+IEMG
+SCHE
+SPEM
+DEM
+EEMV
+EMQQ
+DVYE
+
+# Latin America
+ILF
+EWZ
+ARGT
+EWZS
+
+# Country-Specific
+EWY
+EWW
+EWG
+EWU
+EWC
+EWA
+EWH
+EWS
+EWT
+EWP
+EWI
+EWQ
+EWL
+EWD
+EWN
+
+# ========================================
+# STYLE ETFs (Growth/Value/Dividend)
+# ========================================
+
+# Growth
+VUG
+VOOG
+IVW
+SCHG
+IWF
+IWP
+VBK
+IJT
+
+# Value
+VTV
+VOOV
+IVE
+SCHV
+IWD
+IWS
+VBR
+IJJ
+
+# Dividend
+VIG
+SCHD
+DVY
+VYM
+DGRO
+SDY
+HDV
+NOBL
+FVD
+FDL
+DHS
+IDV
+VYMI
+SPHD
+
+# High Dividend
+HDV
+SDIV
+DIV
+DEM
+DEW
+
+# ========================================
+# THEMATIC & INNOVATION ETFs
+# ========================================
+
+# ARK ETFs
+ARKK
+ARKW
+ARKG
+ARKF
+ARKQ
+ARKX
+IZRL
+CTRU
+PRNT
+
+# Cloud Computing
+SKYY
+CLOU
+WFH
+WCLD
+
+# Cybersecurity
+HACK
+CIBR
+BUG
+
+# Robotics & AI
+BOTZ
+ROBO
+IRBO
+AIQ
+AIIQ
+THNQ
+
+# EV & Batteries
+LIT
+BATT
+DRIV
+IDRV
+KARS
+
+# Cannabis
+MJ
+YOLO
+CNBS
+THCX
+POTX
+
+# Gaming & Esports
+ESPO
+HERO
+BJK
+GAMR
+NERD
+
+# Space
+UFO
+ARKX
+
+# Blockchain & Crypto
+BLOK
+BLCN
+LEGR
+
+# ========================================
+# LEVERAGED ETFs
+# ========================================
+
+# 2x Long
+SSO
+QLD
+UWM
+UYG
+URE
+UCC
+UXI
+UYM
+
+# 3x Long
+UPRO
+TQQQ
+UDOW
+TNA
+TECL
+SOXL
+SPXL
+FAS
+CURE
+
+# Inverse
+SH
+PSQ
+RWM
+DOG
+REK
+
+# 2x Inverse
+SDS
+QID
+TWM
+SKF
+DUG
+
+# 3x Inverse
+SPXU
+SQQQ
+SDOW
+TZA
+SOXS
+FAZ
+SRTY
+
+# ========================================
+# FIXED INCOME (Bonds)
+# ========================================
+
+# Aggregate
+AGG
+BND
+BNDX
+SCHZ
+IAGG
+ILTB
+
+# Treasury
+TLT
+IEF
+SHY
+IEI
+SHV
+GOVT
+VGIT
+VGLT
+VGSH
+SPTL
+SPTS
+TBF
+TBT
+
+# Corporate
+LQD
+VCIT
+VCSH
+USIG
+IGLB
+IGIB
+VTC
+VCLT
+
+# High Yield
+HYG
+JNK
+SHYG
+SJNK
+ANGL
+HYGH
+HYLB
+FALN
+
+# International Bonds
+BNDX
+IAGG
+EMB
+PCY
+BWX
+WIP
+
+# TIPS (Inflation Protected)
+TIP
+VTIP
+SCHP
+STIP
+SPIP
+TDTT
+LTPZ
+
+# Municipal
+MUB
+VTEB
+TFI
+SUB
+HYD
+MUO
+
+# Floating Rate
+FLOT
+FLRN
+ICSH
+
+# ========================================
+# COMMODITIES
+# ========================================
+
+# Gold
+GLD
+IAU
+GLDM
+BAR
+SGOL
+GDX
+GDXJ
+NUGT
+DUST
+
+# Silver
+SLV
+SIVR
+
+# Oil & Gas
+USO
+UNG
+BNO
+OIL
+UGA
+UCO
+SCO
+
+# Broad Commodities
+DBC
+GSG
+PDBC
+COMT
+DJP
+
+# Agriculture
+DBA
+CORN
+WEAT
+SOYB
+NIB
+
+# Metals & Mining
+DBB
+PICK
+COPX
+SIL
+REMX
+XME
+
+# ========================================
+# ALTERNATIVE STRATEGIES
+# ========================================
+
+# Volatility
+VXX
+UVXY
+SVXY
+VIXY
+
+# Bitcoin & Crypto ETFs
+BITO
+BTF
+
+# Low Volatility
+SPLV
+USMV
+LGLV
+ACWV
+
+# Momentum
+MTUM
+PDP
+VFMO
+
+# Quality
+QUAL
+SPHQ
+JQUA
+
+# Multi-Factor
+LRGF
+SMLF
+INTF
+
+# Multi-Asset
+AOR
+AOA
+AOM
+AOK
+
+# Equal Weight
+RSP
+EWSC
+QQEW
+EUSA
+
+# ========================================
+# NICHE & SPECIALIZED
+# ========================================
+
+# Water
+PHO
+FIW
+CGW
+
+# Infrastructure
+IFRA
+IGF
+PAVE
+
+# Defense
+ITA
+PPA
+XAR
+
+# Biotech
+IBB
+XBI
+LABU
+BBH
+
+# Fintech
+FINX
+ARKF
+IPAY
+
+# Travel & Leisure
+AWAY
+PEJ
+
+# Homebuilders
+XHB
+ITB
+PKB
+
+# Bank Loans
+BKLN
+SRLN
+
+# Preferred Stock
+PFF
+PGX
+
+# REITs by sector
+XLRE
+VNQ
+IYR
+REM
+MORT
+KBWY

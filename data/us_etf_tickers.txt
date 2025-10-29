@@ -1,0 +1,64 @@
+# US ETF Tickers - Extended List
+# 약 200개의 주요 미국 ETF 티커
+# 사용법: python collect_all_data.py --foreign-tickers-file data/us_etf_tickers.txt
+
+# === Broad Market Index ETFs ===
+SPY
+VOO
+IVV
+QQQ
+IWM
+DIA
+VTI
+ITOT
+
+# === Sector ETFs ===
+XLK
+XLF
+XLV
+XLE
+XLY
+XLP
+XLI
+XLB
+XLU
+XLRE
+XLC
+
+# === International ===
+EFA
+EEM
+VWO
+VEA
+IEFA
+FXI
+EWJ
+VGK
+
+# === Thematic ===
+ARKK
+ARKW
+ARKG
+ARKF
+ICLN
+TAN
+LIT
+BOTZ
+
+# === Fixed Income ===
+AGG
+BND
+TLT
+IEF
+SHY
+HYG
+JNK
+LQD
+
+# === Commodities ===
+GLD
+SLV
+USO
+DBC
+
+# 더 많은 티커를 추가하려면 여기에 한 줄에 하나씩 추가하세요
