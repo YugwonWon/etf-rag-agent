@@ -57,7 +57,8 @@ class ChromaHandler:
                 path=self.persist_directory,
                 settings=ChromaSettings(
                     anonymized_telemetry=False,
-                    allow_reset=True
+                    allow_reset=True,
+                    chroma_sysdb_impl="duckdb+parquet"
                 )
             )
             

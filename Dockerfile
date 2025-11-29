@@ -20,6 +20,13 @@ COPY . .
 # 포트 설정 (Cloud Run은 8080 기본)
 ENV PORT=8080
 
+# ChromaDB/HNSW 스레드 제한 (Cloud Run CPU 제한 대응)
+ENV HNSWLIB_NO_NATIVE=1
+ENV OMP_NUM_THREADS=1
+ENV OPENBLAS_NUM_THREADS=1
+ENV MKL_NUM_THREADS=1
+ENV NUMEXPR_NUM_THREADS=1
+
 # 헬스체크용 비루트 사용자
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
