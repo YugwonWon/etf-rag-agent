@@ -80,7 +80,7 @@ gcloud run deploy ${SERVICE_NAME} \
     --min-instances 0 \
     --concurrency 80 \
     --port 8080 \
-    --set-env-vars "LLM_PROVIDER=openai,OPENAI_API_KEY=$(grep '^OPENAI_API_KEY=' .env | cut -d'=' -f2),OPENAI_MODEL=$(grep '^OPENAI_MODEL=' .env | cut -d'=' -f2),OPENAI_EMBEDDING_MODEL=$(grep '^OPENAI_EMBEDDING_MODEL=' .env | cut -d'=' -f2),OPENAI_TIMEOUT=$(grep '^OPENAI_TIMEOUT=' .env | cut -d'=' -f2),WEAVIATE_URL=$(grep '^WEAVIATE_URL=' .env | cut -d'=' -f2),WEAVIATE_API_KEY=$(grep '^WEAVIATE_API_KEY=' .env | cut -d'=' -f2),WEAVIATE_CLASS_NAME=$(grep '^WEAVIATE_CLASS_NAME=' .env | cut -d'=' -f2),DART_API_KEY=$(grep '^DART_API_KEY=' .env | cut -d'=' -f2),ENABLE_SCHEDULER=false,RUN_INITIAL_COLLECTION=false,ENVIRONMENT=production"
+    --set-env-vars "LLM_PROVIDER=openai,OPENAI_API_KEY=$(grep '^OPENAI_API_KEY=' .env | cut -d'=' -f2),OPENAI_MODEL=$(grep '^OPENAI_MODEL=' .env | cut -d'=' -f2),OPENAI_EMBEDDING_MODEL=$(grep '^OPENAI_EMBEDDING_MODEL=' .env | cut -d'=' -f2),OPENAI_TIMEOUT=$(grep '^OPENAI_TIMEOUT=' .env | cut -d'=' -f2),VECTOR_DB_TYPE=chroma,CHROMA_PERSIST_DIRECTORY=/app/data/chroma,CHROMA_COLLECTION_NAME=ETFDocument,DART_API_KEY=$(grep '^DART_API_KEY=' .env | cut -d'=' -f2),ENABLE_SCHEDULER=false,RUN_INITIAL_COLLECTION=false,ENVIRONMENT=production"
 
 echo "✅ 배포 완료"
 

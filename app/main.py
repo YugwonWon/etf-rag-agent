@@ -22,8 +22,8 @@ print("🔵 config imported")
 from app.retriever.query_handler import RAGQueryHandler
 print("🔵 query_handler imported")
 
-from app.vector_store.weaviate_handler import WeaviateHandler
-print("🔵 weaviate_handler imported")
+from app.vector_store import get_vector_handler as create_vector_handler
+print("🔵 vector_store factory imported")
 
 from app.crawler.collector import ETFDataCollector
 print("🔵 collector imported")
@@ -123,7 +123,7 @@ def get_vector_handler():
     global vector_handler
     if vector_handler is None:
         try:
-            vector_handler = WeaviateHandler()
+            vector_handler = create_vector_handler()
             logger.info("Vector handler initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize vector handler: {e}")

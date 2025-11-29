@@ -7,7 +7,7 @@ from typing import List, Dict, Optional
 from loguru import logger
 
 from app.config import get_settings
-from app.vector_store.weaviate_handler import WeaviateHandler
+from app.vector_store import get_vector_handler
 from app.model.model_factory import get_model, ModelType
 
 
@@ -16,14 +16,14 @@ class RAGQueryHandler:
     
     def __init__(
         self,
-        vector_handler: Optional[WeaviateHandler] = None,
+        vector_handler = None,
         model_type: ModelType = None
     ):
         """
         Initialize RAG handler
         
         Args:
-            vector_handler: WeaviateHandler instance
+            vector_handler: Vector DB handler instance (ChromaHandler or WeaviateHandler)
             model_type: LLM model type ("openai" or "local")
         """
         self.settings = get_settings()
@@ -32,7 +32,7 @@ class RAGQueryHandler:
         if vector_handler:
             self.vector_handler = vector_handler
         else:
-            self.vector_handler = WeaviateHandler()
+            self.vector_handler = get_vector_handler()
         
         # Initialize LLM model
         self.model_type = model_type or self.settings.llm_provider

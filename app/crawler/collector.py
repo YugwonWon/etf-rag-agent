@@ -9,7 +9,7 @@ from loguru import logger
 from app.crawler.naver_kr import NaverETFCrawler
 from app.crawler.yfinance_us import YFinanceETFCrawler
 from app.crawler.dart_api import DARTCrawler
-from app.vector_store.weaviate_handler import WeaviateHandler
+from app.vector_store import get_vector_handler
 from app.model.model_factory import get_model
 
 
@@ -18,14 +18,14 @@ class ETFDataCollector:
     
     def __init__(
         self,
-        vector_handler: Optional[WeaviateHandler] = None,
+        vector_handler = None,
         model_type: str = None
     ):
         """
         Initialize collector
         
         Args:
-            vector_handler: WeaviateHandler instance
+            vector_handler: Vector DB handler instance (ChromaHandler or WeaviateHandler)
             model_type: LLM model type for embeddings
         """
         self.naver_crawler = NaverETFCrawler()

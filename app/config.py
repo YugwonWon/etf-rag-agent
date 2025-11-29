@@ -28,10 +28,17 @@ class Settings(BaseSettings):
     ollama_base_url: str = Field(default="http://localhost:11434", env="OLLAMA_BASE_URL")
     ollama_api_key: Optional[str] = Field(default=None, env="OLLAMA_API_KEY")
     
-    # Weaviate
+    # Vector DB Selection
+    vector_db_type: Literal["chroma", "weaviate"] = Field(default="chroma", env="VECTOR_DB_TYPE")
+    
+    # Weaviate (legacy/optional)
     weaviate_url: str = Field(default="http://localhost:8080", env="WEAVIATE_URL")
     weaviate_api_key: Optional[str] = Field(default=None, env="WEAVIATE_API_KEY")
     weaviate_class_name: str = Field(default="ETFDocument", env="WEAVIATE_CLASS_NAME")
+    
+    # ChromaDB (default)
+    chroma_persist_directory: str = Field(default="./data/chroma", env="CHROMA_PERSIST_DIR")
+    chroma_collection_name: str = Field(default="ETFDocument", env="CHROMA_COLLECTION_NAME")
     
     # DART API
     dart_api_key: Optional[str] = Field(default=None, env="DART_API_KEY")

@@ -28,9 +28,9 @@ OPENAI_API_KEY=$(grep '^OPENAI_API_KEY=' .env | cut -d'=' -f2),\
 OPENAI_MODEL=$(grep '^OPENAI_MODEL=' .env | cut -d'=' -f2),\
 OPENAI_EMBEDDING_MODEL=$(grep '^OPENAI_EMBEDDING_MODEL=' .env | cut -d'=' -f2),\
 OPENAI_TIMEOUT=$(grep '^OPENAI_TIMEOUT=' .env | cut -d'=' -f2),\
-WEAVIATE_URL=$(grep '^WEAVIATE_URL=' .env | cut -d'=' -f2),\
-WEAVIATE_API_KEY=$(grep '^WEAVIATE_API_KEY=' .env | cut -d'=' -f2),\
-WEAVIATE_CLASS_NAME=$(grep '^WEAVIATE_CLASS_NAME=' .env | cut -d'=' -f2),\
+VECTOR_DB_TYPE=chroma,\
+CHROMA_PERSIST_DIRECTORY=/app/data/chroma,\
+CHROMA_COLLECTION_NAME=ETFDocument,\
 DART_API_KEY=$(grep '^DART_API_KEY=' .env | cut -d'=' -f2),\
 ENABLE_SCHEDULER=false,\
 RUN_INITIAL_COLLECTION=false,\
