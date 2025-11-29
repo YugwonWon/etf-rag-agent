@@ -19,8 +19,10 @@ ENV/
 .git/
 .gitignore
 
-# Data
-data/
+# Data (exclude raw and weaviate, but include chroma)
+data/raw/
+data/weaviate/
+data/collect/
 logs/
 *.log
 
