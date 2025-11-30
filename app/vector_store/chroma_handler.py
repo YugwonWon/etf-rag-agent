@@ -2,15 +2,25 @@
 ChromaDB Vector Store Handler
 Manages ETF document storage and retrieval in ChromaDB
 Compatible with WeaviateHandler API
+
+Docker/Cloud Run에서는 인메모리 모드로 SQLite에서 데이터를 복사하여 사용
 """
 
 import hashlib
 import json
 import os
+import sqlite3
+import numpy as np
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Any
 from loguru import logger
 from pathlib import Path
+
+# Force single-threaded mode for Cloud Run compatibility
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 try:
     import chromadb
@@ -51,40 +61,134 @@ class ChromaHandler:
         # Ensure directory exists
         Path(self.persist_directory).mkdir(parents=True, exist_ok=True)
         
-        # Connect to ChromaDB
+        # Check if running in Docker (Cloud Run)
+        self._is_docker = os.path.exists("/.dockerenv") or os.environ.get("K_SERVICE")
+        
+        # In Docker: use in-memory mode with data loaded from SQLite
+        # Otherwise: use persistent mode normally
+        if self._is_docker:
+            self._init_inmemory_from_sqlite()
+        else:
+            self._init_persistent()
+    
+    def _init_persistent(self):
+        """Initialize persistent ChromaDB client (for local development)"""
         try:
             self.client = chromadb.PersistentClient(
                 path=self.persist_directory,
                 settings=ChromaSettings(
                     anonymized_telemetry=False,
                     allow_reset=True,
-                    chroma_sysdb_impl="duckdb+parquet"
                 )
             )
             
-            logger.info(f"Connected to ChromaDB at {self.persist_directory}")
+            logger.info(f"Connected to ChromaDB (persistent) at {self.persist_directory}")
             
-            # Ensure collection exists
-            self._ensure_collection()
+            # Get or create collection
+            self.collection = self.client.get_or_create_collection(
+                name=self.collection_name,
+                metadata={"hnsw:space": "cosine"}
+            )
+            
+            logger.info(f"Collection '{self.collection_name}' ready with {self.collection.count()} documents")
             
         except Exception as e:
             logger.error(f"Failed to connect to ChromaDB: {e}")
             raise
     
-    def _ensure_collection(self):
-        """Create collection if it doesn't exist"""
+    def _init_inmemory_from_sqlite(self):
+        """Initialize in-memory ChromaDB and load data from SQLite (for Docker/Cloud Run)"""
         try:
-            # Get or create collection
-            self.collection = self.client.get_or_create_collection(
-                name=self.collection_name,
-                metadata={"description": "ETF documents for RAG"}
+            # Create in-memory client
+            self.client = chromadb.Client(
+                settings=ChromaSettings(
+                    anonymized_telemetry=False,
+                    is_persistent=False,
+                )
             )
             
-            logger.info(f"Collection '{self.collection_name}' ready with {self.collection.count()} documents")
-                
+            # Create collection
+            self.collection = self.client.create_collection(
+                name=self.collection_name,
+                metadata={"hnsw:space": "cosine"}
+            )
+            
+            logger.info("Created in-memory ChromaDB client for Docker environment")
+            
+            # Load data from SQLite
+            self._load_data_from_sqlite()
+            
         except Exception as e:
-            logger.error(f"Error ensuring collection: {e}")
+            logger.error(f"Failed to initialize in-memory ChromaDB: {e}")
             raise
+    
+    def _load_data_from_sqlite(self):
+        """Load data from ChromaDB's SQLite database into memory"""
+        # First try JSON export file (most reliable)
+        json_path = Path(self.persist_directory).parent / "chroma_export.json"
+        if json_path.exists():
+            self._load_data_from_json(json_path)
+            return
+        
+        # Fallback to SQLite (may not work due to schema differences)
+        sqlite_path = Path(self.persist_directory) / "chroma.sqlite3"
+        
+        if not sqlite_path.exists():
+            logger.warning(f"No data files found at {self.persist_directory}")
+            return
+        
+        logger.info("Attempting to load from SQLite (may fail)...")
+        # SQLite schema varies between ChromaDB versions, JSON is more reliable
+        self._load_data_from_json(json_path)
+    
+    def _load_data_from_json(self, json_path: Path):
+        """Load data from JSON export file"""
+        if not json_path.exists():
+            logger.warning(f"JSON export file not found: {json_path}")
+            return
+        
+        try:
+            logger.info(f"Loading data from {json_path}...")
+            
+            with open(json_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            
+            if not data.get("documents"):
+                logger.warning("No documents in JSON file")
+                return
+            
+            ids = []
+            embeddings = []
+            documents = []
+            metadatas = []
+            
+            for doc in data["documents"]:
+                ids.append(doc["id"])
+                embeddings.append(doc["embedding"])
+                documents.append(doc.get("document", ""))
+                metadatas.append(doc.get("metadata", {}))
+            
+            # Add to collection in batches
+            batch_size = 500
+            for i in range(0, len(ids), batch_size):
+                end = min(i + batch_size, len(ids))
+                self.collection.add(
+                    ids=ids[i:end],
+                    embeddings=embeddings[i:end],
+                    documents=documents[i:end],
+                    metadatas=metadatas[i:end]
+                )
+            
+            logger.info(f"✓ Loaded {len(ids)} documents from JSON into memory")
+            
+        except Exception as e:
+            logger.error(f"Failed to load from JSON: {e}")
+            raise
+    
+    def _ensure_collection(self):
+        """Create collection if it doesn't exist (for compatibility)"""
+        # Already handled in init methods
+        pass
     
     def _compute_content_hash(self, content: str) -> str:
         """Compute SHA256 hash of content"""

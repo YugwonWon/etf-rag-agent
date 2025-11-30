@@ -18,7 +18,8 @@ pydantic-settings>=2.0.0
 # Vector Database
 # ----------------------------------------
 # ChromaDB (default - lightweight, no external service needed)
-chromadb==1.0.0
+# Using 0.5.20 for Cloud Run compatibility
+chromadb==0.5.20
 
 # Weaviate (optional - for cloud deployment)
 weaviate-client==4.17.0

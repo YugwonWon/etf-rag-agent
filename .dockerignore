@@ -19,10 +19,11 @@ ENV/
 .git/
 .gitignore
 
-# Data (exclude raw and weaviate, but include chroma)
+# Data (exclude raw and weaviate, include chroma and export JSON)
 data/raw/
 data/weaviate/
 data/collect/
+# Keep data/chroma/ and data/chroma_export.json
 logs/
 *.log
 
