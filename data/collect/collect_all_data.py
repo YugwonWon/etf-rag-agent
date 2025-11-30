@@ -6,7 +6,20 @@ Collects ETF data and stores in ChromaDB vector store
 
 import argparse
 import sys
+import os
+from pathlib import Path
 from loguru import logger
+
+# Add project root to path
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+os.chdir(PROJECT_ROOT)
+
+# Set default environment variables for debug
+os.environ.setdefault("VECTOR_DB_TYPE", "chroma")
+os.environ.setdefault("CHROMA_PERSIST_DIRECTORY", "./data/chroma")
+os.environ.setdefault("CHROMA_COLLECTION_NAME", "ETFDocument")
+os.environ.setdefault("OPENAI_API_KEY", os.environ.get("OPENAI_API_KEY", ""))
 
 def main():
     parser = argparse.ArgumentParser(description='Collect ETF data into ChromaDB')

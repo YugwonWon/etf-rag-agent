@@ -5,8 +5,43 @@ Crawls foreign ETF information
 
 from typing import List, Dict, Optional
 from datetime import datetime
+from pathlib import Path
 import yfinance as yf
 from loguru import logger
+
+
+def load_tickers_from_file(file_path: str) -> List[str]:
+    """
+    Load ETF tickers from a text file.
+    Lines starting with # are treated as comments.
+    Empty lines are ignored.
+    
+    Args:
+        file_path: Path to the ticker file
+        
+    Returns:
+        List of ticker symbols
+    """
+    tickers = []
+    path = Path(file_path)
+    
+    if not path.exists():
+        logger.warning(f"Ticker file not found: {file_path}")
+        return tickers
+    
+    with open(path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            # Skip empty lines and comments
+            if not line or line.startswith('#'):
+                continue
+            # Take only the first word (in case of inline comments)
+            ticker = line.split()[0].upper()
+            if ticker:
+                tickers.append(ticker)
+    
+    logger.info(f"Loaded {len(tickers)} tickers from {file_path}")
+    return tickers
 
 
 class YFinanceETFCrawler:
@@ -14,25 +49,57 @@ class YFinanceETFCrawler:
     
     # Popular US ETFs to track
     DEFAULT_ETF_TICKERS = [
-        # Broad Market
-        "SPY",    # S&P 500
+        # Broad Market - Large Cap
+        "SPY",    # S&P 500 (SPDR)
+        "VOO",    # S&P 500 (Vanguard)
+        "IVV",    # S&P 500 (iShares)
         "QQQ",    # Nasdaq 100
+        "QQQM",   # Nasdaq 100 (Mini, lower expense ratio)
         "IWM",    # Russell 2000
+        "IWB",    # Russell 1000
         "DIA",    # Dow Jones
         "VTI",    # Total Stock Market
+        "ITOT",   # Total Stock Market (iShares)
+        "VT",     # Total World Stock
+        "VXUS",   # Total International
         
-        # Tech & Growth
+        # Growth & Value
+        "VUG",    # Vanguard Growth
+        "VTV",    # Vanguard Value
+        "IWF",    # Russell 1000 Growth
+        "IWD",    # Russell 1000 Value
+        "SCHG",   # Schwab US Large-Cap Growth
+        "SCHD",   # Schwab US Dividend Equity
+        
+        # Tech & Innovation
         "ARKK",   # ARK Innovation
         "ARKW",   # ARK Next Gen Internet
         "ARKG",   # ARK Genomic Revolution
-        "SOXL",   # Semiconductor 3x
-        "TQQQ",   # Nasdaq 100 3x
+        "ARKF",   # ARK Fintech Innovation
+        "SOXL",   # Semiconductor 3x Bull
+        "SOXX",   # Semiconductor
+        "SMH",    # Semiconductor (VanEck)
+        "TQQQ",   # Nasdaq 100 3x Bull
+        "IGV",    # Software
+        "WCLD",   # Cloud Computing
+        "BOTZ",   # Robotics & AI
+        "ROBO",   # Global Robotics & Automation
+        "AIQ",    # AI & Big Data
         
         # International
         "EFA",    # EAFE (Developed Markets)
         "EEM",    # Emerging Markets
-        "VWO",    # Emerging Markets
+        "VWO",    # Emerging Markets (Vanguard)
+        "IEMG",   # Core Emerging Markets
         "FXI",    # China Large-Cap
+        "KWEB",   # China Internet
+        "MCHI",   # China
+        "EWJ",    # Japan
+        "EWY",    # South Korea
+        "EWT",    # Taiwan
+        "INDA",   # India
+        "EWZ",    # Brazil
+        "VEA",    # Developed Markets
         
         # Sector ETFs
         "XLF",    # Financial
@@ -40,31 +107,114 @@ class YFinanceETFCrawler:
         "XLK",    # Technology
         "XLV",    # Healthcare
         "XLI",    # Industrial
+        "XLY",    # Consumer Discretionary
+        "XLP",    # Consumer Staples
+        "XLU",    # Utilities
+        "XLRE",   # Real Estate
+        "XLB",    # Materials
+        "XLC",    # Communication Services
+        
+        # Thematic
+        "ICLN",   # Clean Energy
+        "TAN",    # Solar
+        "LIT",    # Lithium & Battery
+        "DRIV",   # Electric Vehicles
+        "JETS",   # Airlines
+        "IBB",    # Biotech
+        "XBI",    # Biotech (SPDR)
+        "ARKG",   # Genomics
+        "HACK",   # Cybersecurity
+        "CIBR",   # Cybersecurity
         
         # Bond ETFs
         "AGG",    # Total Bond Market
+        "BND",    # Total Bond Market (Vanguard)
         "TLT",    # 20+ Year Treasury
+        "IEF",    # 7-10 Year Treasury
+        "SHY",    # 1-3 Year Treasury
+        "TIP",    # TIPS
+        "LQD",    # Investment Grade Corporate
         "HYG",    # High Yield Corporate
+        "JNK",    # High Yield Corporate (SPDR)
+        "EMB",    # Emerging Markets Bond
+        "BNDX",   # International Bond
         
         # Commodity
-        "GLD",    # Gold
+        "GLD",    # Gold (SPDR)
+        "IAU",    # Gold (iShares)
         "SLV",    # Silver
         "USO",    # Oil
+        "UNG",    # Natural Gas
+        "DBA",    # Agriculture
+        "DBC",    # Commodity Index
+        "PDBC",   # Optimum Yield Diversified Commodity
         
-        # Inverse & Volatility
+        # Real Estate
+        "VNQ",    # Vanguard Real Estate
+        "SCHH",   # Schwab US REIT
+        "IYR",    # iShares US Real Estate
+        "VNQI",   # International Real Estate
+        
+        # Dividend & Income
+        "VYM",    # Vanguard High Dividend
+        "DVY",    # Select Dividend
+        "HDV",    # Core High Dividend
+        "SPHD",   # S&P 500 High Dividend Low Volatility
+        "JEPI",   # JPMorgan Equity Premium Income
+        "JEPQ",   # JPMorgan Nasdaq Equity Premium Income
+        
+        # Leveraged & Inverse
         "VIXY",   # Volatility
+        "UVXY",   # Ultra Volatility
         "SQQQ",   # Nasdaq 100 -3x
+        "SPXU",   # S&P 500 -3x
+        "SPXL",   # S&P 500 3x
+        "UPRO",   # S&P 500 3x (ProShares)
+        "QLD",    # Nasdaq 100 2x
+        "SSO",    # S&P 500 2x
+        "SH",     # S&P 500 -1x
+        "PSQ",    # Nasdaq 100 -1x
+        "SOXS",   # Semiconductor -3x
+        
+        # Low Volatility & Quality
+        "USMV",   # Min Volatility USA
+        "QUAL",   # Quality Factor
+        "MTUM",   # Momentum Factor
+        "SIZE",   # Size Factor
+        "VLUE",   # Value Factor
     ]
     
-    def __init__(self, custom_tickers: Optional[List[str]] = None):
+    # Default ticker file path
+    DEFAULT_TICKER_FILE = "data/us_etf_comprehensive.txt"
+    
+    def __init__(self, custom_tickers: Optional[List[str]] = None, ticker_file: Optional[str] = None):
         """
         Initialize yfinance crawler
         
         Args:
-            custom_tickers: Custom list of ticker symbols
+            custom_tickers: Custom list of ticker symbols (highest priority)
+            ticker_file: Path to file containing ticker symbols (second priority)
+                        If not provided, tries DEFAULT_TICKER_FILE first,
+                        then falls back to DEFAULT_ETF_TICKERS
         """
-        self.tickers = custom_tickers or self.DEFAULT_ETF_TICKERS
-        logger.info(f"YFinance Crawler initialized with {len(self.tickers)} tickers")
+        if custom_tickers:
+            self.tickers = custom_tickers
+            logger.info(f"YFinance Crawler initialized with {len(self.tickers)} custom tickers")
+        elif ticker_file:
+            self.tickers = load_tickers_from_file(ticker_file)
+            if not self.tickers:
+                logger.warning(f"No tickers loaded from {ticker_file}, using defaults")
+                self.tickers = self.DEFAULT_ETF_TICKERS
+        else:
+            # Try to load from default file first
+            default_file = Path(self.DEFAULT_TICKER_FILE)
+            if default_file.exists():
+                self.tickers = load_tickers_from_file(self.DEFAULT_TICKER_FILE)
+                if not self.tickers:
+                    self.tickers = self.DEFAULT_ETF_TICKERS
+            else:
+                self.tickers = self.DEFAULT_ETF_TICKERS
+                logger.info(f"Using {len(self.tickers)} default tickers (file not found: {self.DEFAULT_TICKER_FILE})")
     
     def get_etf_info(self, ticker: str) -> Optional[Dict[str, any]]:
         """

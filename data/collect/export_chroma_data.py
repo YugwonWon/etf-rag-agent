@@ -10,7 +10,14 @@ import sys
 from pathlib import Path
 
 # Add project root to path
-sys.path.insert(0, str(Path(__file__).parent))
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+os.chdir(PROJECT_ROOT)
+
+# Set default environment variables for debug
+os.environ.setdefault("VECTOR_DB_TYPE", "chroma")
+os.environ.setdefault("CHROMA_PERSIST_DIRECTORY", "./data/chroma")
+os.environ.setdefault("CHROMA_COLLECTION_NAME", "ETFDocument")
 
 def export_chroma_to_json():
     """Export all ChromaDB data to a JSON file"""
