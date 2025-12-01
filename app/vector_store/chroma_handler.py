@@ -378,21 +378,58 @@ class ChromaHandler:
         query_vector: List[float],
         limit: int = 5,
         filters: Optional[Dict[str, Any]] = None,
-        min_certainty: float = 0.7
+        min_certainty: float = 0.5,
+        query_text: str = None
     ) -> List[Dict[str, Any]]:
         """
-        Search for similar documents
+        Search for similar documents with optional keyword boosting
         
         Args:
             query_vector: Query embedding vector
             limit: Number of results
             filters: Filter conditions (e.g., {"etf_type": "domestic"})
-            min_certainty: Minimum similarity score (0-1)
+            min_certainty: Minimum similarity score (0-1), default 0.5 for ChromaDB L2 distance
+            query_text: Original query text for keyword matching
         
         Returns:
             List of search results with content and metadata
         """
         try:
+            # First, try exact ticker match if query_text is provided
+            keyword_results = []
+            if query_text:
+                # Extract potential ticker from query
+                # Remove Korean characters first, then find uppercase letter sequences
+                import re
+                clean_text = re.sub(r'[가-힣]', ' ', query_text)
+                potential_tickers = re.findall(r'[A-Za-z]{2,5}', clean_text.upper())
+                
+                for ticker in potential_tickers:
+                    try:
+                        ticker_match = self.collection.get(
+                            where={"etf_code": ticker},
+                            include=["documents", "metadatas"]
+                        )
+                        if ticker_match["ids"]:
+                            for i, doc_id in enumerate(ticker_match["ids"]):
+                                metadata = ticker_match["metadatas"][i] if ticker_match["metadatas"] else {}
+                                keyword_results.append({
+                                    "uuid": doc_id,
+                                    "content": ticker_match["documents"][i] if ticker_match["documents"] else "",
+                                    "certainty": 0.95,  # High certainty for exact match
+                                    "metadata": {
+                                        "etf_code": metadata.get("etf_code"),
+                                        "etf_name": metadata.get("etf_name"),
+                                        "date": metadata.get("date"),
+                                        "version": metadata.get("version"),
+                                        "source": metadata.get("source"),
+                                        "etf_type": metadata.get("etf_type"),
+                                        "category": metadata.get("category"),
+                                    }
+                                })
+                    except Exception as e:
+                        logger.debug(f"Ticker search failed for {ticker}: {e}")
+            
             # Build filter (ChromaDB where clause)
             where_clause = None
             if filters:
@@ -407,29 +444,30 @@ class ChromaHandler:
                         ]
                     }
             
-            # Search
+            # Vector search
             results = self.collection.query(
                 query_embeddings=[query_vector],
-                n_results=limit,
+                n_results=limit * 2,  # Get more results for merging
                 where=where_clause,
                 include=["documents", "metadatas", "distances"]
             )
             
-            # Format results
-            formatted_results = []
+            # Format vector search results
+            vector_results = []
             
             if results["ids"] and results["ids"][0]:
                 for i, doc_id in enumerate(results["ids"][0]):
-                    # Convert distance to certainty (ChromaDB uses L2 distance by default)
-                    # Lower distance = higher similarity
+                    # Skip if already in keyword results
+                    if any(kr["uuid"] == doc_id for kr in keyword_results):
+                        continue
+                        
                     distance = results["distances"][0][i] if results["distances"] else 0
-                    # Convert L2 distance to similarity score (approximate)
                     certainty = 1 / (1 + distance)
                     
                     if certainty >= min_certainty:
                         metadata = results["metadatas"][0][i] if results["metadatas"] else {}
                         
-                        formatted_results.append({
+                        vector_results.append({
                             "uuid": doc_id,
                             "content": results["documents"][0][i] if results["documents"] else "",
                             "certainty": certainty,
@@ -444,7 +482,11 @@ class ChromaHandler:
                             }
                         })
             
-            logger.debug(f"Search returned {len(formatted_results)} results")
+            # Merge: keyword results first, then vector results
+            formatted_results = keyword_results + vector_results
+            formatted_results = formatted_results[:limit]
+            
+            logger.debug(f"Search returned {len(formatted_results)} results (keyword: {len(keyword_results)}, vector: {len(vector_results)})")
             return formatted_results
             
         except Exception as e:

@@ -76,7 +76,8 @@ class RAGQueryHandler:
                 query_vector=query_vector,
                 limit=top_k,
                 filters=filters,
-                min_certainty=self.settings.similarity_threshold
+                min_certainty=self.settings.similarity_threshold,
+                query_text=question
             )
             
             if not results:
